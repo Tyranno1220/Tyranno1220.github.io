@@ -2,10 +2,10 @@ html {
 font-family: "Segoe UI symbol";
 padding: 5%;
 background-color: #16161c;
-max-width: 550px;
+max-width: 80%;
 color: white;
 margin: auto;
-line-height: 30px;}
+line-height: 0.3em;}
 
 body {
 background-color: #1c1c23;
@@ -15,26 +15,7 @@ padding-bottom: 50px;
 border-radius: 2px;}
 
 p {
-font-size: 100%;
-line-height: 20px;}
-
-.p2 {
-margin-top: 30px;
-margin-bottom: 30px;
-background-color: #292937;
-border-radius: 2px;
-padding: 10px;}
-
-.hr2 {
-margin-top: 30px;
-margin-bottom: 30px;
-border-radius: 2px;
-border-top: 2px solid white; }
-iframe {
-width: 510px;
-height: 350px;
-margin-left: auto;
-margin-right: auto;}
+line-height: 2vh;}
 
 a {
-color: #ffce00}
+color: #28acac}
