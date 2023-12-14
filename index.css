@@ -1,21 +1,36 @@
 html {
-font-family: "Segoe UI symbol";
-padding: 5%;
-background-color: #16161c;
-max-width: 80%;
-color: white;
-margin: auto;
-line-height: 0.3em;}
+  font-family: "Segoe UI symbol";
+  padding: 5%;
+  background-color: #16161c;
+  max-width: 80%;
+  color: white;
+  margin: auto;
+  line-height: 0.3em;
+}
 
 body {
-background-color: #1c1c23;
-width: 550px;
-padding: 20px;
-padding-bottom: 50px;
-border-radius: 2px;}
+  background-color: #1c1c23;
+  width: 550px;
+  padding: 20px;
+  padding-bottom: 50px;
+  border-radius: 2px;
+}
+
+h {
+  padding-top: 5vh;
+  padding-bottom: 5vh;
+}
 
 p {
-line-height: 2vh;}
+  line-height: normal;
+}
 
 a {
-color: #28acac}
+  color: #28acac;
+  text-decoration: none;
+}
+
+a hover {
+  color: #ffce00;
+  text-decoration: none;
+}
