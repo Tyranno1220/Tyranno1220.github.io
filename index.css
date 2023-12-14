@@ -5,7 +5,7 @@ html {
   max-width: 80%;
   color: white;
   margin: auto;
-  line-height: 0.3em;
+  line-height: normal;
 }
 
 body {
@@ -19,10 +19,6 @@ body {
 h {
   padding-top: 5vh;
   padding-bottom: 5vh;
-}
-
-p {
-  line-height: normal;
 }
 
 a {
