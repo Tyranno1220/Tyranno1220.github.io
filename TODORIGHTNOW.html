@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- It's all ChatGPT LOL -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="" />
+    <title>TO DO</title>
+    <style>
+        body {
+            font-family: consolas;
+            margin: 50px;
+            background-color: black;
+            color: white;
+            padding-left: 30vw;
+            padding-right: 30vw;
+            position: relative;
+        }
+
+        #toDoHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #toDoList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #toDoList li {
+            background: #181818;
+            color: white;
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move; /* Change cursor to indicate draggable items */
+            user-select: none; /* Disable text selection */
+        }
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        input {
+            border: none;
+            height: 30px;
+            border-radius: 5px;
+        }
+
+        button {
+            border: none;
+            width: 70px;
+            height: 30px;
+            border-radius: 5px;
+            background-color: #28acac;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1e8c8c;
+        }
+        
+        input[type="text"] {
+            padding-left: 0.5vw;
+        }
+
+        .context-menu {
+            display: none;
+            position: absolute;
+            background-color: #333;
+            color: white;
+            z-index: 1000;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        /* CSS animation for fading out */
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .fade-out {
+            animation: fadeOut 1s forwards;
+        }
+
+        #taskCounter {
+            display: inline-block;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+        }
+
+        #timer button {
+            margin-left: 5px;
+        }
+        
+        @media (max-width: 1000px) {
+            body {
+                padding-left: 5vw;
+                padding-right: 5vw;
+            }
+        }
+    
+        @media (max-width: 700px) {
+            #timer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>TO DO NOW AND RIGHT NOW</h1>
+    <div id="timer">
+        <span id="timeDisplay">00:00:00</span>
+        <button onclick="startTimer()">Start</button>
+        <button onclick="stopTimer()">Stop</button>
+        <button onclick="resetTimer()">Reset</button>
+    </div>
+    <p>temporary tasks that disappear.</p>
+    <br>
+    <input type="text" id="newToDo" placeholder="Add a new task">
+    <button onclick="addToDo()">Add</button>
+    <br> <br>
+    <span id="taskCounter">Completed tasks: 0</span>
+    <ul id="toDoList"></ul>
+
+    <div id="contextMenu" class="context-menu">
+        <div id="deleteTask">Delete Task</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+    <script>
+        var sortable = new Sortable(document.getElementById("toDoList"), {
+            animation: 150,
+            ghostClass: 'sortable-ghost', // Class name for the drop placeholder
+        });
+
+        var completedTaskCount = 0;
+
+        function updateTaskCounter() {
+            document.getElementById("taskCounter").textContent = "Completed Tasks: " + completedTaskCount;
+        }
+
+        function addToDo() {
+            var toDoText = document.getElementById("newToDo").value;
+            if (toDoText === "") {
+                alert("You must write something!");
+                return;
+            }
+
+            var li = document.createElement("li");
+            li.textContent = toDoText;
+
+            var checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "close";
+            checkbox.onclick = function() {
+                var div = this.parentElement;
+                if (this.checked) {
+                    div.style.textDecoration = "line-through";
+                    div.classList.add("fade-out");
+                    completedTaskCount++;
+                    updateTaskCounter();
+                    saveUncheckedTasks();
+                    setTimeout(function() {
+                        div.remove();
+                    }, 2000);
+                } else {
+                    div.style.textDecoration = "none";
+                    completedTaskCount--;
+                    updateTaskCounter();
+                    saveUncheckedTasks();
+                }
+            };
+            li.appendChild(checkbox);
+
+            li.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showContextMenu(e.clientX, e.clientY, li);
+            });
+
+            document.getElementById("toDoList").appendChild(li);
+            document.getElementById("newToDo").value = "";
+
+            sortable.sort();
+        }
+
+        document.getElementById("newToDo").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addToDo();
+            }
+        });
+
+        function showContextMenu(x, y, li) {
+            var contextMenu = document.getElementById("contextMenu");
+            contextMenu.style.display = "block";
+            contextMenu.style.left = x + "px";
+            contextMenu.style.top = y + "px";
+
+            document.getElementById("deleteTask").onclick = function() {
+                li.remove();
+                saveUncheckedTasks();
+                contextMenu.style.display = "none";
+            };
+
+            document.addEventListener('click', function() {
+                contextMenu.style.display = "none";
+            });
+        }
+
+        // Timer functionality
+        var timer;
+        var seconds = 0;
+        
+        function startTimer() {
+            if (!timer) {
+                timer = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timer);
+            timer = null;
+        }
+
+        function resetTimer() {
+            stopTimer();
+            seconds = 0;
+            document.getElementById("timeDisplay").textContent = "00:00:00";
+        }
+
+        function updateTimer() {
+            seconds++;
+            var hrs = Math.floor(seconds / 3600);
+            var mins = Math.floor((seconds % 3600) / 60);
+            var secs = seconds % 60;
+            document.getElementById("timeDisplay").textContent = 
+                (hrs < 10 ? "0" + hrs : hrs) + ":" + 
+                (mins < 10 ? "0" + mins : mins) + ":" + 
+                (secs < 10 ? "0" + secs : secs);
+        }
+
+        // Save unchecked tasks in cookies
+        function saveUncheckedTasks() {
+            var uncheckedTasks = document.querySelectorAll('#toDoList li input[type="checkbox"]:not(:checked)');
+            var uncheckedTaskIds = Array.from(uncheckedTasks).map(task => task.parentElement.textContent.trim());
+            Cookies.set('uncheckedTasks', JSON.stringify(uncheckedTaskIds));
+        }
+
+        // Load unchecked tasks from cookies on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            var uncheckedTasks = Cookies.get('uncheckedTasks');
+            if (uncheckedTasks) {
+                uncheckedTasks = JSON.parse(uncheckedTasks);
+                uncheckedTasks.forEach(taskText => {
+                    var li = document.createElement("li");
+                    li.textContent = taskText;
+
+                    var checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "close";
+                    checkbox.onclick = function() {
+                        var div = this.parentElement;
+                        if (this.checked) {
+                            div.style.textDecoration = "line-through";
+                            div.classList.add("fade-out");
+                            completedTaskCount++;
+                            updateTaskCounter();
+                            saveUncheckedTasks();
+                            setTimeout(function() {
+                                div.remove();
+                            }, 2000);
+                        } else {
+                            div.style.textDecoration = "none";
+                            completedTaskCount--;
+                            updateTaskCounter();
+                            saveUncheckedTasks();
+                        }
+                    };
+                    li.appendChild(checkbox);
+
+                    li.addEventListener('contextmenu', function(e) {
+                        e.preventDefault();
+                        showContextMenu(e.clientX, e.clientY, li);
+                    });
+
+                    document.getElementById("toDoList").appendChild(li);
+                });
+            }
+        });
+
+        // Alert when there are unchecked tasks on page unload
+        window.addEventListener("beforeunload", function(e) {
+            var uncheckedTasks = document.querySelectorAll('#toDoList li input[type="checkbox"]:not(:checked)');
+            if (uncheckedTasks.length > 0) {
+                var confirmationMessage = "Are you sure?";
+                e.returnValue = confirmationMessage;
+                return confirmationMessage;
+            }
+        });
+    </script>
+</body>
+</html>
