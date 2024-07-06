@@ -4,7 +4,7 @@
     <!-- It's all ChatGPT LOL -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/test/tick.png" />
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Tyranno1220/Tyranno1220.github.io/main/test/tick.png" />
     <title>TO DO</title>
     <style>
         body {
@@ -254,6 +254,22 @@
                 (mins < 10 ? "0" + mins : mins) + ":" + 
                 (secs < 10 ? "0" + secs : secs);
         }
+
+        // Save unchecked tasks in cookies
+        function saveUncheckedTasks() {
+            var uncheckedTasks = document.querySelectorAll('#toDoList li input[type="checkbox"]:not(:checked)');
+            var uncheckedTaskIds = Array.from(uncheckedTasks).map(task => task.parentElement.textContent.trim());
+            Cookies.set('uncheckedTasks', JSON.stringify(uncheckedTaskIds));
+        }
+
+        // Load unchecked tasks from cookies on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            var uncheckedTasks = Cookies.get('uncheckedTasks');
+            if (uncheckedTasks) {
+                uncheckedTasks = JSON.parse(uncheckedTasks);
+                uncheckedTasks.forEach(taskText => {
+                    var li = document.createElement("li");
+                    li.textContent = taskText;
 
                     var checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
