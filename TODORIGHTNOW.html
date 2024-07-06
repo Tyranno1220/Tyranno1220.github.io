@@ -32,13 +32,23 @@
             color: white;
             margin: 5px 0;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 0px solid #ddd;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            cursor: move; /* Change cursor to indicate draggable items */
             user-select: none; /* Disable text selection */
         }
+
+        .handle {
+            cursor: move; /* Change cursor to indicate draggable items */
+            color: grey;
+            padding-right: 10px;
+        }
+
+        .task-text {
+            flex-grow: 1; /* Allow the text span to take available space */
+            text-align: left; /* Left align the text */
+        }
+
         input[type="checkbox"] {
             cursor: pointer;
         }
@@ -100,7 +110,7 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            color: white;
+            color: grey;
         }
 
         #timer button {
@@ -122,19 +132,19 @@
     </style>
 </head>
 <body>
-    <h1>TO DO NOW AND RIGHT NOW</h1>
+    <h1>Tasks to destroy</h1>
     <div id="timer">
         <span id="timeDisplay">00:00:00</span>
         <button onclick="startTimer()">Start</button>
         <button onclick="stopTimer()">Stop</button>
         <button onclick="resetTimer()">Reset</button>
     </div>
-    <p>temporary tasks that disappear.</p>
+    <p style="color:grey">temporary tasks - refresh to destroy all.</p>
+    <span id="taskCounter" style="color:grey">tasks destroyed this session: 0</span>
+    <br> <br>
     <br>
     <input type="text" id="newToDo" placeholder="Add a new task">
     <button onclick="addToDo()">Add</button>
-    <br> <br>
-    <span id="taskCounter">Completed tasks: 0</span>
     <ul id="toDoList"></ul>
 
     <div id="contextMenu" class="context-menu">
@@ -146,12 +156,13 @@
         var sortable = new Sortable(document.getElementById("toDoList"), {
             animation: 150,
             ghostClass: 'sortable-ghost', // Class name for the drop placeholder
+            handle: '.handle' // Restrict dragging to this handle element
         });
 
         var completedTaskCount = 0;
 
         function updateTaskCounter() {
-            document.getElementById("taskCounter").textContent = "Completed Tasks: " + completedTaskCount;
+            document.getElementById("taskCounter").textContent = "tasks destroyed this session: " + completedTaskCount;
         }
 
         function addToDo() {
@@ -162,7 +173,14 @@
             }
 
             var li = document.createElement("li");
-            li.textContent = toDoText;
+
+            var handle = document.createElement("span");
+            handle.textContent = "☰";
+            handle.className = "handle";
+
+            var taskText = document.createElement("span");
+            taskText.textContent = toDoText;
+            taskText.className = "task-text";
 
             var checkbox = document.createElement("input");
             checkbox.type = "checkbox";
@@ -183,6 +201,9 @@
                     updateTaskCounter();
                 }
             };
+
+            li.appendChild(handle);
+            li.appendChild(taskText);
             li.appendChild(checkbox);
 
             li.addEventListener('contextmenu', function(e) {
@@ -192,8 +213,6 @@
 
             document.getElementById("toDoList").appendChild(li);
             document.getElementById("newToDo").value = "";
-
-            sortable.sort();
         }
 
         document.getElementById("newToDo").addEventListener("keypress", function(event) {
