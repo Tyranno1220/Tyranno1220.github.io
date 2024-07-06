@@ -142,7 +142,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
     <script>
         var sortable = new Sortable(document.getElementById("toDoList"), {
             animation: 150,
@@ -175,7 +174,6 @@
                     div.classList.add("fade-out");
                     completedTaskCount++;
                     updateTaskCounter();
-                    saveUncheckedTasks();
                     setTimeout(function() {
                         div.remove();
                     }, 2000);
@@ -183,7 +181,6 @@
                     div.style.textDecoration = "none";
                     completedTaskCount--;
                     updateTaskCounter();
-                    saveUncheckedTasks();
                 }
             };
             li.appendChild(checkbox);
@@ -214,7 +211,6 @@
 
             document.getElementById("deleteTask").onclick = function() {
                 li.remove();
-                saveUncheckedTasks();
                 contextMenu.style.display = "none";
             };
 
@@ -254,55 +250,6 @@
                 (mins < 10 ? "0" + mins : mins) + ":" + 
                 (secs < 10 ? "0" + secs : secs);
         }
-
-        // Save unchecked tasks in cookies
-        function saveUncheckedTasks() {
-            var uncheckedTasks = document.querySelectorAll('#toDoList li input[type="checkbox"]:not(:checked)');
-            var uncheckedTaskIds = Array.from(uncheckedTasks).map(task => task.parentElement.textContent.trim());
-            Cookies.set('uncheckedTasks', JSON.stringify(uncheckedTaskIds));
-        }
-
-        // Load unchecked tasks from cookies on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            var uncheckedTasks = Cookies.get('uncheckedTasks');
-            if (uncheckedTasks) {
-                uncheckedTasks = JSON.parse(uncheckedTasks);
-                uncheckedTasks.forEach(taskText => {
-                    var li = document.createElement("li");
-                    li.textContent = taskText;
-
-                    var checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.className = "close";
-                    checkbox.onclick = function() {
-                        var div = this.parentElement;
-                        if (this.checked) {
-                            div.style.textDecoration = "line-through";
-                            div.classList.add("fade-out");
-                            completedTaskCount++;
-                            updateTaskCounter();
-                            saveUncheckedTasks();
-                            setTimeout(function() {
-                                div.remove();
-                            }, 2000);
-                        } else {
-                            div.style.textDecoration = "none";
-                            completedTaskCount--;
-                            updateTaskCounter();
-                            saveUncheckedTasks();
-                        }
-                    };
-                    li.appendChild(checkbox);
-
-                    li.addEventListener('contextmenu', function(e) {
-                        e.preventDefault();
-                        showContextMenu(e.clientX, e.clientY, li);
-                    });
-
-                    document.getElementById("toDoList").appendChild(li);
-                });
-            }
-        });
 
         // Alert when there are unchecked tasks on page unload
         window.addEventListener("beforeunload", function(e) {
