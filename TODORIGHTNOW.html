@@ -89,13 +89,17 @@
             cursor: pointer;
         }
 
-        /* CSS animation for fading out */
+        /* Enhanced CSS animation for fading out with color change */
         @keyframes fadeOut {
             from {
                 opacity: 1;
+                transform: scale(1);
+                background-color: #181818;
             }
             to {
                 opacity: 0;
+                transform: scale(0.5);
+                background-color: #ff0000;
             }
         }
         .fade-out {
@@ -132,7 +136,7 @@
     </style>
 </head>
 <body>
-    <h1>Tasks to destroy</h1>
+    <h1>To destroy.</h1>
     <div id="timer">
         <span id="timeDisplay">00:00:00</span>
         <button onclick="startTimer()">Start</button>
@@ -151,7 +155,9 @@
         <div id="deleteTask">Delete Task</div>
     </div>
 
+    <audio id="completeSound" src="/test/select-sound-121244.mp3" preload="auto"></audio>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
     <script>
         var sortable = new Sortable(document.getElementById("toDoList"), {
             animation: 150,
@@ -192,9 +198,21 @@
                     div.classList.add("fade-out");
                     completedTaskCount++;
                     updateTaskCounter();
+
+                    // Play sound effect
+                    var completeSound = document.getElementById("completeSound");
+                    completeSound.play();
+
+                    // Trigger confetti
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+
                     setTimeout(function() {
                         div.remove();
-                    }, 2000);
+                    }, 1000);
                 } else {
                     div.style.textDecoration = "none";
                     completedTaskCount--;
