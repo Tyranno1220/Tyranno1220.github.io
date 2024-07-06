@@ -254,22 +254,6 @@
                 (secs < 10 ? "0" + secs : secs);
         }
 
-        // Save unchecked tasks in cookies
-        function saveUncheckedTasks() {
-            var uncheckedTasks = document.querySelectorAll('#toDoList li input[type="checkbox"]:not(:checked)');
-            var uncheckedTaskIds = Array.from(uncheckedTasks).map(task => task.parentElement.textContent.trim());
-            Cookies.set('uncheckedTasks', JSON.stringify(uncheckedTaskIds));
-        }
-
-        // Load unchecked tasks from cookies on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            var uncheckedTasks = Cookies.get('uncheckedTasks');
-            if (uncheckedTasks) {
-                uncheckedTasks = JSON.parse(uncheckedTasks);
-                uncheckedTasks.forEach(taskText => {
-                    var li = document.createElement("li");
-                    li.textContent = taskText;
-
                     var checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
                     checkbox.className = "close";
