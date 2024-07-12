@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Tyranno1220/Tyranno1220.github.io/main/test/ttys.png" />
-    <title>Talking to yourself</title>
+    <title>Chat with Yourself</title>
     <style>
         body {
             padding: 80px 20vw 20px;
@@ -46,7 +45,7 @@
             right: 20vw;
             background-color: black;
             padding: 10px 0;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease; /* Add transition for smooth visibility change */
         }
         .input-group {
             width: 45%;
@@ -92,6 +91,16 @@
         .hidden {
             opacity: 0;
             pointer-events: none;
+        }
+        
+        @media (max-width: 1000px) {
+            body {
+                padding-left: 5vw;
+                padding-right: 5vw;
+            }
+            button { 
+            padding-right: 0 ;
+            min-width: 10vw; }
         }
     </style>
 </head>
