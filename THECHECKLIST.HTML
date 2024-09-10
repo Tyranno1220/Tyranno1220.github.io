@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Checklist</title>
+    <style>
+        body {
+            background-color: #000000;
+            font-family: Consolas, monospace;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        input {
+            transform: scale(1.5);
+            margin-right: 10px;
+        }
+        #wellDoneMessage {
+            display: none;
+            font-size: 48px;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+        .fadeOut {
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <h1>The Checklist</h1>
+    <ul id="checklist">
+        <li><input type="checkbox" id="earphones"> Earphones</li>
+        <li><input type="checkbox" id="folders"> Folders</li>
+        <li><input type="checkbox" id="keys"> Keys</li>
+        <li><input type="checkbox" id="lanyard"> Lanyard</li>
+        <li><input type="checkbox" id="pencilCase"> Pencil case</li>
+        <li><input type="checkbox" id="water"> Water</li>
+    </ul>
+    <div id="wellDoneMessage">Well done.</div>
+
+    <script>
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        const checklist = document.getElementById('checklist');
+        const wellDoneMessage = document.getElementById('wellDoneMessage');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                if (Array.from(checkboxes).every(cb => cb.checked)) {
+                    checklist.classList.add('fadeOut');
+                    setTimeout(() => {
+                        checklist.style.display = 'none';
+                        wellDoneMessage.style.display = 'block';
+                        setTimeout(() => {
+                            wellDoneMessage.style.opacity = 1;
+                        }, 50);
+                    }, 800);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
