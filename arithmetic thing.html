@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arithmetic thing.</title>
+    <style>
+        body {
+            font-family: Noto Sans, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            color: white;
+            background-color: black;
+        }
+        #question {
+            text-align: center;
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            margin-right: 35vw;
+            margin-left: 35vw;
+        }
+        #score, #timer {
+            padding: 10px;
+            font-size: 1em;
+            display: inline-block;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            font-size: 18px;
+            padding: 5px;
+            -moz-appearance: textfield;
+        }
+        button {
+            font-size: 18px;
+            padding: 5px 10px;
+            margin: 0 auto;
+            margin-top: 3vh;
+            display: block;
+            text-align: center;
+            color: white;
+            background-color: transparent;
+        }
+        div#timer {
+            color: #666666;
+        }
+        
+        @media (max-width: 768px) {
+            #question {
+                font-size: 2.3em;
+                margin-right: 5vw;
+                margin-left: 5vw;
+                text-wrap: no-wrap;
+            }
+            
+    </style>
+</head>
+<body>
+    <div id="question"><p style="color:#999999; font-size:0.75em;">arithmetic thing</p></div>
+    <input type="number" id="answer" placeholder="" disabled>
+    <div id="score">0</div>
+    <div id="timer">120</div>
+    <button id="startButton" onclick="startQuiz()">→</button>
+
+    <script>
+    let score = 0;
+    let timeLeft = 120;
+    let defaultTime = 120;
+    let currentAnswer = 0;
+    let timerInterval;
+    let quizActive = false;
+
+    function getRandomNumber(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+    const operators = ['+', '-', '*', '/'];
+    const operator = operators[getRandomNumber(0, operators.length - 1)];
+    let num1, num2;
+
+    if (operator === '+') {
+        do {
+            num1 = getRandomNumber(2, 100);
+            num2 = getRandomNumber(2, 100);
+        } while (num1 === num2); 
+    } else if (operator === '-') {
+        do {
+            num1 = getRandomNumber(2, 100);
+            num2 = getRandomNumber(2, num1);
+        } while (num1 - num2 === 0);
+    } else if (operator === '*') {
+        num1 = getRandomNumber(2, 12);
+        num2 = getRandomNumber(2, 100);
+    } else if (operator === '/') {
+        do {
+            num2 = getRandomNumber(2, 12);
+            const multiplier = getRandomNumber(2, 10);
+            num1 = num2 * multiplier;
+        } while (num1 === num2);
+    }
+
+    currentAnswer = eval(`${num1} ${operator} ${num2}`);
+    document.getElementById('question').innerText = `${num1} ${operator} ${num2}`;
+}
+    function startQuiz() {
+        score = 0;
+        timeLeft = defaultTime;
+        quizActive = true;
+        document.getElementById('score').innerText = score;
+        document.getElementById('timer').innerText = `${timeLeft}`;
+        document.getElementById('answer').value = '';
+        document.getElementById('answer').disabled = false;
+        document.getElementById('answer').focus();
+        document.getElementById('startButton').style.display = 'none';
+
+        generateQuestion();
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = `${timeLeft}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('question').innerText = "⌛";
+                document.getElementById('answer').disabled = true;
+                document.getElementById('startButton').style.display = 'block';
+                quizActive = false;
+            }
+        }, 1000);
+
+        document.getElementById('answer').addEventListener('input', checkAnswer);
+    }
+
+    function checkAnswer() {
+        const userAnswer = parseInt(document.getElementById('answer').value, 10);
+        if (userAnswer === currentAnswer) {
+            score++;
+            document.getElementById('score').innerText = score;
+            document.getElementById('answer').value = '';
+            generateQuestion();
+        }
+    }
+
+    document.getElementById('timer').addEventListener('click', () => {
+        if (!quizActive) {
+            const newTime = prompt('that\'s your timer. how many seconds do you want?');
+            if (newTime && !isNaN(newTime) && newTime > 0) {
+                defaultTime = parseInt(newTime, 10); 
+                timeLeft = defaultTime; 
+                document.getElementById('timer').innerText = `${timeLeft}`;
+            }
+        } else {
+            alert("❌");
+        }
+    });
+
+    document.getElementById('score').addEventListener('click', () => {
+        alert('that\'s your score.');
+    });
+</script>
+</body>
+</html>
