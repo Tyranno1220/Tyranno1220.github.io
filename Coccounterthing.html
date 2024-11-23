@@ -135,7 +135,6 @@
             resultsDiv.innerHTML = `
                 <h4>Counts counted</h4>
                 <pre>${sortedCounts.map(([name, count]) => `${name}: ${count}`).join('\n')}</pre>
-                <h4>Total Count</h4>
                 <p>Total: ${totalCounted}</p>
                 <p>Observed Number of Counts: ${observedCount}</p>
                 <p>${lastNumber !== observedCountNumber ? 
