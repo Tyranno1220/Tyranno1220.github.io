@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coc counter thing</title>
     <style>
-        html{ color: white; }
+        html {
+            color: white;
+        }
         body {
-            font-family: Noto sans;
+            font-family: Noto sans, Arial, sans-serif;
             margin: 20px;
             background-color: black;
         }
@@ -24,35 +26,58 @@
             padding: 10px;
             background: #1c1c1c;
             color: white;
+            display: none;
         }
         pre {
             white-space: pre-wrap;
             word-wrap: break-word;
         }
         button {
-        border: none;
-        color: white;
-        background-color: grey;
-        padding:10px;
+            border: none;
+            color: white;
+            background-color: #28acac;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
-        
         p {
-        font-family: monospace;
+            font-family: monospace;
         }
+        .radio-group {
+        accent-color: #28acac;
+        border:2px;
+        padding-bottom: 2em;
+        }
+        .copy-button {
+            display: none;
+        }
+        textarea { padding: 10px;}
     </style>
 </head>
 <body>
     <h1>Coc counter thing</h1>
-    <p>Copy and paste stuff here. Make sure you are in COMPACT MODE.</p>
-    <textarea id="logDataInput" placeholder="Paste stuff here"></textarea>
-    <button onclick="analyzeLogData()">Done</button>
+    <div class="radio-group">
+        <label><input type="radio" name="logFormat" value="compact" checked> Compact</label>
+        <label><input type="radio" name="logFormat" value="relaxed"> Relaxed</label>
+    </div>
+    <textarea id="logDataInput" placeholder="Paste here."></textarea>
+    <div style="display:flex; gap: 10px; color:light-grey;">
+        <button onclick="analyzeLogData()">Submit</button>
+        <button class="copy-button" id="copy-button" onclick="copyToClipboard()">📋</button>
+    </div>
     <div class="results" id="results"></div>
 
     <script>
         function analyzeLogData() {
             const logData = document.getElementById('logDataInput').value;
+            const format = document.querySelector('input[name="logFormat"]:checked').value;
             const resultsDiv = document.getElementById('results');
+            const copyButton = document.getElementById('copy-button');
+
+            resultsDiv.style.display = 'block'; 
             resultsDiv.innerHTML = '';
+            copyButton.style.display = 'inline-block';
+
 
             const logEntries = logData.trim().split('\n');
             const validEntries = [];
@@ -61,90 +86,165 @@
             const possibleDuplicates = [];
             const userHourlyCounts = {};
 
-            for (const entry of logEntries) {
-                const match = entry.match(/\[(\d{2}):(\d{2})\]([^:]+): (.+)/);
-                if (match) {
-                    const [_, hour, minute, name, message] = match;
-                    const timestamp = `${hour}:${minute}`;
-                    let reason = null;
+            let currentInvalidBlock = [];
+            let lastTimestamp = null;
 
-                    const countMatch = message.match(/\b(\d+)\b/);
-                    if (countMatch) {
-                        const countNumber = parseInt(countMatch[1], 10);
+            for (let i = 0; i < logEntries.length; i++) {
+                let entry = logEntries[i];
+                let match;
+                let name, timestamp, message = null;
 
-                        if (!timestamp.endsWith(':00') && !timestamp.endsWith(':30')) {
-                            reason = "wrong time";
+                if (format === 'compact') {
+                    match = entry.match(/\[(\d{2}):(\d{2})\]([^:]+): (.+)/);
+                    if (match) {
+                        const [_, hour, minute, username, msg] = match;
+                        name = username.trim();
+                        timestamp = `${hour}:${minute}`;
+                        message = msg.trim();
+                    } else {
+                        currentInvalidBlock.push(entry);
+                        continue;
+                    }
+                } else if (format === 'relaxed') {
+                    match = entry.match(/(.+?) — .*?(\d{2}):(\d{2})/);
+                    if (match) {
+                        const [_, username, hour, minute] = match;
+                        name = username.trim();
+                        timestamp = `${hour}:${minute}`;
+
+                        message = '';
+                        let j = i + 1;
+                        while (j < logEntries.length && !logEntries[j].match(/.+? — .*?(\d{2}):(\d{2})/)) {
+                            message += logEntries[j].trim() + '\n';
+                            j++;
                         }
+                        i = j - 1;
 
-                        if (!reason) {
-                            if (userHourlyCounts[name]) {
-                                if (userHourlyCounts[name].has(hour)) {
-                                    reason = `${name} already counted at ${hour}:00 or ${hour}:30`;
-                                } else {
-                                    userHourlyCounts[name].add(hour);
-                                }
-                            } else {
-                                userHourlyCounts[name] = new Set([hour]);
-                            }
-                        }
-
-                        if (!reason) {
-                            if (countedNumbers[countNumber]) {
-                                possibleDuplicates.push(
-                                    `Count ${countNumber} by ${name} is a duplicate of ${countedNumbers[countNumber]}`
-                                );
-                            }
-                            countedNumbers[countNumber] = name;
-                        }
-
-                        if (!reason) {
-                            validEntries.push(entry);
-                        } else {
-                            invalidEntries.push(`${entry} (${reason})`);
+                        if (!message.trim()) {
+                            currentInvalidBlock.push(entry);
+                            continue;
                         }
                     } else {
-                        invalidEntries.push(`${entry} (doesn't have numbers)`);
+                        currentInvalidBlock.push(entry);
+                        continue;
+                    }
+                }
+
+                if (currentInvalidBlock.length > 0) {
+                    invalidEntries.push({ entries: currentInvalidBlock, reason: "❓ Invalid format or missing count", timestamp: lastTimestamp });
+                    currentInvalidBlock = [];
+                }
+
+                let reason = null;
+                const sanitizedMessage = message.trim().match(/\b\d+\b/);
+                if (sanitizedMessage) {
+                    const countNumber = parseInt(sanitizedMessage[0], 10);
+                    if (!timestamp.endsWith(':00') && !timestamp.endsWith(':30')) {
+                        reason = "❌ Wrong time";
+                    }
+
+                    if (!reason) {
+                        if (userHourlyCounts[name]) {
+                            if (userHourlyCounts[name].has(timestamp.split(':')[0])) {
+                                reason = `🔁 Counted in the same hour`;
+                            } else {
+                                userHourlyCounts[name].add(timestamp.split(':')[0]);
+                            }
+                        } else {
+                            userHourlyCounts[name] = new Set([timestamp.split(':')[0]]);
+                        }
+                    }
+
+                    if (!reason) {
+                        if (countedNumbers[countNumber]) {
+                            possibleDuplicates.push(
+                                `Count ${countNumber} by ${name} is a duplicate of ${countedNumbers[countNumber]}`
+                            );
+                        }
+                        countedNumbers[countNumber] = name;
+                    }
+
+                    if (!reason) {
+                        validEntries.push(`${timestamp} ${name}: ${message}`);
+                    } else {
+                        invalidEntries.push({ entry: `${timestamp} ${name}: ${message}`, reason, name, timestamp, message });
                     }
                 } else {
-                    invalidEntries.push(`${entry} (invalid format)`);
+                    invalidEntries.push({ entry: `${timestamp} ${name}: ${message}`, reason: "➖ No numbers in message", name, timestamp, message });
                 }
+                lastTimestamp = timestamp;
+            }
+            if (currentInvalidBlock.length > 0) {
+                invalidEntries.push({ entries: currentInvalidBlock, reason: "❓ Invalid format or missing count", timestamp: lastTimestamp });
             }
 
-            const names = validEntries.map(entry => entry.match(/\]([^:]+):/)[1].trim());
+            const names = validEntries.map(entry => entry.match(/ ([^:]+):/)[1].trim());
             const nameCounts = names.reduce((acc, name) => {
                 acc[name] = (acc[name] || 0) + 1;
                 return acc;
             }, {});
 
-            const sortedCounts = Object.entries(nameCounts).sort(
-                (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
-            );
+            let sortedCounts = []; 
+            if (nameCounts) {
+                sortedCounts = Object.entries(nameCounts).sort(
+                    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
+                );
+            }
 
             const totalCounted = validEntries.length;
 
             let firstNumber = 0, lastNumber = 0, observedCountNumber = 0, observedCount = 0;
             if (validEntries.length) {
-                const firstMessage = validEntries[0].match(/\[(\d{2}):(\d{2})\]([^:]+): (.+)/)[4];
-                const lastMessage = validEntries[validEntries.length - 1].match(/\[(\d{2}):(\d{2})\]([^:]+): (.+)/)[4];
+                const firstMessage = validEntries[0].match(/: (.+)/)[1];
+                const lastMessage = validEntries[validEntries.length - 1].match(/: (.+)/)[1];
                 firstNumber = parseInt(firstMessage.match(/\b(\d+)\b/)[1], 10);
                 lastNumber = parseInt(lastMessage.match(/\b(\d+)\b/)[1], 10);
                 observedCountNumber = firstNumber + totalCounted - 1;
                 observedCount = lastNumber - firstNumber + 1;
             }
 
+            let countsText = "";
+            if (sortedCounts.length > 0){
+                countsText = sortedCounts.map(([name, count]) => `${name}: ${count}`).join('\n') + `\n\nTotal: ${totalCounted}`;
+            } else {
+                countsText = "No counts to display."
+            }
+
             resultsDiv.innerHTML = `
-                <h4>Counts counted</h4>
-                <pre>${sortedCounts.map(([name, count]) => `${name}: ${count}`).join('\n')}</pre>
-                <p>Total: ${totalCounted}</p>
-                <p>Observed Number of Counts: ${observedCount}</p>
+                <h4>✅ Counts counted</h4>
+                <pre id="counts-to-copy">${countsText}</pre>
+                <p>Observed number of counts: ${observedCount}</p>
                 <p>${lastNumber !== observedCountNumber ? 
                     `Check the counts, expected ${observedCountNumber}.` : 
-                    "Looks good."}</p>
-                <h4>Possible Duplicates</h4>
+                    "✅ Looks good. "}</p>
+                <h4>⚠️ Invalid Entries</h4>
+                <pre>${
+                    invalidEntries.length
+                        ? invalidEntries.map(item => {
+                            const entries = item.entries || [item.entry];
+                            return `${item.timestamp || "???"}: ${item.reason}\n    ${entries.join('\n    ')}`;
+                        }).join('\n')
+                        : "No invalid entries 🎉"
+                }</pre>
+                <h4>🔁 Possible duplicates</h4>
                 <pre>${possibleDuplicates.length ? possibleDuplicates.join('\n') : "No duplicates found."}</pre>
-                <h4>Invalid Entries</h4>
-                <pre>${invalidEntries.length ? invalidEntries.join('\n') : "No invalid entries."}</pre>
             `;
+        }
+
+        function copyToClipboard() {
+            const counts = document.getElementById('counts-to-copy');
+            const range = document.createRange();
+            range.selectNode(counts);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            const copyButton = document.getElementById('copy-button');
+            copyButton.innerText = '✅';
+            setTimeout(() => {
+                copyButton.innerText = '📋';
+                copyButton.style.backgroundColor = 'grey';
+            }, 800);
         }
     </script>
 </body>
