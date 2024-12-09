@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TabToColonsRanker</title>
+        <style>
+        html {
+            color: white;
+        }
+        body {
+            font-family: Noto sans, Arial, sans-serif;
+            margin: 20px;
+            background-color: black;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            background-color: #1c1c1c;
+            color: white;
+            border: none;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            border: none;
+            color: white;
+            background-color: #28acac;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        p {
+            font-family: monospace;
+        }
+        textarea { padding: 10px;}
+    </style>
+</head>
+<body>
+
+<h1>Formatter</h1>
+<textarea id="input" placeholder="Paste your text here..."></textarea>
+<button onclick="processInput()">Submit</button>
+
+<script>
+    function processInput() {
+        const input = document.getElementById('input').value;
+        const lines = input.split('\n');
+        const processedLines = lines
+            .filter(line => line.trim() !== '')
+            .map((line, index) => {
+                let prefix = '';
+                if (index === 0) prefix = '🥇 ';
+                else if (index === 1) prefix = '🥈 ';
+                else if (index === 2) prefix = '🥉 ';
+                return prefix + line.replace(/\t/g, ': ');
+            });
+        
+        if (processedLines.length > 0) {
+            processedLines.splice(processedLines.length - 1, 0, "");
+        }
+        
+        const result = processedLines.join('\n');
+
+        navigator.clipboard.writeText(result).then(() => {
+            alert('Done.');
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>
