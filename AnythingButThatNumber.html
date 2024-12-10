@@ -59,31 +59,32 @@
         }
 
         function checkExpression() {
-            const expression = document.getElementById("expressionInput").value.trim();
-            const resultOutput = document.getElementById("resultOutput");
+    const expression = document.getElementById("expressionInput").value.trim();
+    const resultOutput = document.getElementById("resultOutput");
 
-            if (!expression.includes("=")) {
-                resultOutput.textContent = "⚠️ Expression must contain an '='.";
-                return;
-            }
+    if (!expression.includes("=")) {
+        resultOutput.textContent = "Error: Expression must contain an '='.";
+        return;
+    }
 
-            const [leftSide, rightSide] = expression.split("=");
-            if (!rightSide) {
-                resultOutput.textContent = "⚠️ Invalid expression format.";
-                return;
-            }
+    const [leftSide, rightSide] = expression.split("=").map(side => side.replace(/\s/g, ""));
+    if (!rightSide) {
+        resultOutput.textContent = "Error: Invalid expression format.";
+        return;
+    }
 
-            const rightSideDigits = new Set(rightSide.replace(/[+\-*/]/g, ""));
-            const foundDigits = [...rightSideDigits].filter(digit => leftSide.includes(digit));
+    const rightSideDigits = new Set(rightSide.replace(/[+\-*/]/g, ""));
+    const foundDigits = [...rightSideDigits].filter(digit => leftSide.includes(digit));
 
-            if (foundDigits.length === 0) {
-                resultOutput.textContent = "✅ Looks good!";
-            } else if (foundDigits.length > 1) {
-                resultOutput.textContent = `❌ ${foundDigits.join(", ")} were found in both sides.`;
-            } else {
-                resultOutput.textContent = `❌ ${foundDigits[0]} was found in both sides.`;
-            }
-        }
+    if (foundDigits.length === 0) {
+        resultOutput.textContent = "✅ Looks good!";
+    } else if (foundDigits.length > 1) {
+        resultOutput.textContent = `❌ '${foundDigits.join(", ")}' were found in both sides.`;
+    } else {
+        resultOutput.textContent = `❌ ${foundDigits[0]} was found in both sides.`;
+    }
+}
+
     </script>
 </body>
 </html>
