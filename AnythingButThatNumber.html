@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anything but that number</title>
+    <style>
+        html {
+            color: white;
+        }
+        body {
+            font-family: Noto Sans, Arial, sans-serif;
+            margin: 20px;
+            background-color: black;
+        }
+        input[type="text"] {
+            width: 100%;
+            height: 40px;
+            margin-bottom: 10px;
+            background-color: #1c1c1c;
+            color: white;
+            border: none;
+            padding: 10px;
+        }
+        button {
+            border: none;
+            color: white;
+            background-color: #28acac;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        p {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Anything but that number</h1>
+    <input 
+        type="text" 
+        id="expressionInput" 
+        placeholder="Enter expression here (e.g., 100+50=150)"
+        onkeydown="handleKeyPress(event)">
+    <button onclick="checkExpression()">Check!</button>
+    <pre id="resultOutput"></pre>
+
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                checkExpression();
+            }
+        }
+
+        function checkExpression() {
+            const expression = document.getElementById("expressionInput").value.trim();
+            const resultOutput = document.getElementById("resultOutput");
+
+            if (!expression.includes("=")) {
+                resultOutput.textContent = "⚠️ Expression must contain an '='.";
+                return;
+            }
+
+            const [leftSide, rightSide] = expression.split("=");
+            if (!rightSide) {
+                resultOutput.textContent = "⚠️ Invalid expression format.";
+                return;
+            }
+
+            const rightSideDigits = new Set(rightSide.replace(/[+\-*/]/g, ""));
+            const foundDigits = [...rightSideDigits].filter(digit => leftSide.includes(digit));
+
+            if (foundDigits.length === 0) {
+                resultOutput.textContent = "✅ Looks good!";
+            } else if (foundDigits.length > 1) {
+                resultOutput.textContent = `❌ ${foundDigits.join(", ")} were found in both sides.`;
+            } else {
+                resultOutput.textContent = `❌ ${foundDigits[0]} was found in both sides.`;
+            }
+        }
+    </script>
+</body>
+</html>
