@@ -140,7 +140,7 @@
 		}, intervalTime);
 	}
         thresholdText.addEventListener('click', () => {
-            const newThreshold = prompt("What, you want to change the threshold?", threshold);
+            const newThreshold = prompt("What, you want to change the threshold? (don't worry, i will ensure it will still be very rigged.)", threshold);
             if (newThreshold !== null && !isNaN(newThreshold) && newThreshold >= 1 && newThreshold <= 100) {
                 threshold = parseInt(newThreshold, 10);
                 thresholdText.textContent = `If you can get ${threshold} or more, then do it.`;
