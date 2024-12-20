@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNG IT</title>
+    <style>
+        html {
+            color: white;
+            height: 100%;
+        }
+        body {
+            font-family: Noto sans, Arial, sans-serif;
+            margin: 0;
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+        }
+        @media (max-width: 600px) {
+            body {
+                margin: 20px;
+                align-items: flex-start;
+            }
+        }
+        button {
+            border: none;
+            color: white;
+            background-color: #28acac;
+            padding: 80px 160px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 1.5em;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        button:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        .result-container {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .result {
+			margin-top: 10vh;
+            font-size: 4em;
+            text-align: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0s, transform 0.5s;
+        }
+        .result.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .roll-number {
+            font-size: 1.2em;
+            margin-top: 10px;
+            text-align: center;
+            color: grey;
+            opacity: 0;
+            transition: opacity 0.75s, color 0.5s;
+        }
+        .roll-number.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .roll-number.final {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 25vh;">
+    <h1>RNG IT</h1>
+    <p id="thresholdText" style="cursor: pointer;">If you can get 80 or more, then do it.</p>
+</div>
+    <button id="rollButton">Roll</button>
+    <div class="result-container">
+        <div id="result" class="result"></div>
+    </div>
+    <div id="rollNumber" class="roll-number"></div>
+
+    <script>
+        const rollButton = document.getElementById('rollButton');
+        const resultDiv = document.getElementById('result');
+        const rollNumberDiv = document.getElementById('rollNumber');
+        const thresholdText = document.getElementById('thresholdText');
+
+        let threshold = 80;
+
+        function riggedRandom() {
+            return Math.random() < 0.8 ? Math.floor(Math.random() * (threshold - 1)) + 1 : Math.floor(Math.random() * (101 - threshold)) + threshold;
+        }
+
+	function simulateRoll() {
+		resultDiv.textContent = "";
+		resultDiv.classList.remove("show");
+		rollNumberDiv.textContent = "Rolling...";
+		rollNumberDiv.classList.remove("show", "final");
+		rollButton.disabled = true;
+
+		let currentNumber = 0;
+		let intervalTime = 50;
+		const rollInterval = setInterval(() => {
+			currentNumber = Math.floor(Math.random() * 100) + 1;
+			rollNumberDiv.textContent = `${currentNumber}`;
+			rollNumberDiv.classList.add("show");
+			intervalTime += 20;
+			if (intervalTime > 200) {
+				clearInterval(rollInterval);
+				const finalRoll = riggedRandom();
+				setTimeout(() => {
+					rollNumberDiv.textContent = `${finalRoll}.`;
+					rollNumberDiv.classList.add("final");
+					resultDiv.textContent = finalRoll >= threshold ? 
+						"✅" : 
+						"❌";
+					resultDiv.classList.add("show");
+					rollButton.disabled = false;
+				}, 100);
+			}
+		}, intervalTime);
+	}
+        thresholdText.addEventListener('click', () => {
+            const newThreshold = prompt("What, you want to change the threshold?", threshold);
+            if (newThreshold !== null && !isNaN(newThreshold) && newThreshold >= 1 && newThreshold <= 100) {
+                threshold = parseInt(newThreshold, 10);
+                thresholdText.textContent = `If you can get ${threshold} or more, then do it.`;
+            }
+        });
+
+        rollButton.addEventListener('click', simulateRoll);
+    </script>
+</body>
+</html>
