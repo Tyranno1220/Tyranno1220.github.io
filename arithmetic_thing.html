@@ -79,34 +79,35 @@
     }
 
     function generateQuestion() {
-    const operators = ['+', '-', '*', '/'];
-    const operator = operators[getRandomNumber(0, operators.length - 1)];
-    let num1, num2;
+        const operators = ['+', '-', '*', '/'];
+        const operator = operators[getRandomNumber(0, operators.length - 1)];
+        let num1, num2;
 
-    if (operator === '+') {
-        do {
-            num1 = getRandomNumber(2, 200);
-            num2 = getRandomNumber(2, 200);
-        } while (num1 === num2); 
-    } else if (operator === '-') {
-        do {
-            num1 = getRandomNumber(2, 200);
-            num2 = getRandomNumber(2, num1);
-        } while (num1 - num2 === 0);
-    } else if (operator === '*') {
-        num1 = getRandomNumber(2, 12);
-        num2 = getRandomNumber(2, 100);
-    } else if (operator === '/') {
-        do {
-            num2 = getRandomNumber(2, 12);
-            const multiplier = getRandomNumber(2, 100);
-            num1 = num2 * multiplier;
-        } while (num1 === num2);
+        if (operator === '+') {
+            do {
+                num1 = getRandomNumber(2, 200);
+                num2 = getRandomNumber(2, 200);
+            } while (num1 === num2); 
+        } else if (operator === '-') {
+            do {
+                num1 = getRandomNumber(2, 200);
+                num2 = getRandomNumber(2, num1);
+            } while (num1 - num2 === 0);
+        } else if (operator === '*') {
+            num1 = getRandomNumber(2, 12);
+            num2 = getRandomNumber(2, 100);
+        } else if (operator === '/') {
+            do {
+                num2 = getRandomNumber(2, 12);
+                const multiplier = getRandomNumber(2, 100);
+                num1 = num2 * multiplier;
+            } while (num1 === num2);
+        }
+
+        currentAnswer = eval(`${num1} ${operator} ${num2}`);
+        document.getElementById('question').innerText = `${num1} ${operator} ${num2}`;
     }
 
-    currentAnswer = eval(`${num1} ${operator} ${num2}`);
-    document.getElementById('question').innerText = `${num1} ${operator} ${num2}`;
-}
     function startQuiz() {
         score = 0;
         timeLeft = defaultTime;
@@ -163,6 +164,13 @@
     document.getElementById('score').addEventListener('click', () => {
         alert('that\'s your score.');
     });
+
+    document.addEventListener('keydown', (event) => {
+        if (!quizActive && event.key === 'Enter') {
+            startQuiz();
+        }
+    });
 </script>
+
 </body>
 </html>
