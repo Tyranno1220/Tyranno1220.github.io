@@ -18,8 +18,8 @@
         }
 
         h1 {
-            padding-top: 50px;
-            margin-bottom: 20px;
+            text-align: center;
+            color: #696969;
         }
 
         #title-screen {
@@ -27,16 +27,19 @@
             flex-direction: column;
             align-items: center;
         }
-        
-        div#result { 
-        padding-top: 10px;
-        padding-bottom: 20px; }
+
+        div#result {
+            padding-top: 10px;
+            padding-bottom: 20px;
+        }
 
         #word-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 5px;
             display: none;
+            padding: 0 10px;
+            min-width: 20vw;
         }
 
         .word {
@@ -46,15 +49,20 @@
             border-radius: 5px;
             cursor: grab;
             text-align: center;
+            width: calc(100% - 20px);
+            margin: 0 auto;
         }
 
         .drag-over {
             border: 2px dashed #fff;
         }
 
+        .dragging {
+            opacity: 0.5;
+        }
+
         #result {
             margin-top: 20px;
-            font-weight: bold;
         }
 
         button {
@@ -66,28 +74,38 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
+        #again-link {
+            margin-top: 20px;
+            color: #28acac;
+            font-size: 18px;
+            text-decoration: none;
+            cursor: pointer;
+            padding-bottom: 20px;   
+        }
+
+        #again-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div id="title-screen">
         <h1>Alphabetical Sorting Testing</h1>
-        <label for="word-count">Words:</label>
-        <br>
-        <input type="number" id="word-count" min="1" max="50" value="20">
+        <div style="display:inline-block;"><label for="word-count"> Words: </label><input type="number" id="word-count" min="1" max="50" value="20"></div>
         <button id="start-button">START</button>
     </div>
 
     <div id="game-screen" style="display: none;">
-        <h1>Put them in alphabetical order.</h1>
+        <p style="text-align:center">order these words alpabetically.</p>
         <div id="word-container"></div>
         <div id="result"></div>
+        <a id="again-link" style="display: none;" onclick="resetGame()">Again?</a>
     </div>
 
     <script>
         const dictionary = [
-            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "watermelon", "avocado", "blueberry", "cranberry", "dragonfruit", "eggplant", "guava", "jackfruit", "kumquat", "lime", "mulberry", "peach", "pineapple", "pear", "plum", "pomegranate", "carrot", "broccoli", "zucchini", "spinach", "lettuce", "cucumber", "tomato", "onion", "potato", "radish", "parsnip", "celery", "turnip", "beet", "pepper", "chili", "corn", "cauliflower", "brussels sprout", "asparagus", "okra", "cabbage", "artichoke", "swede", "yam", "ginger", "parsley", "basil", "oregano", "thyme", "dill",
-            "ant", "bear", "cat", "dog", "elephant", "fox", "giraffe", "horse", "iguana", "jaguar", "kangaroo", "lion", "monkey", "newt", "owl", "pig", "quail", "rabbit", "snake", "tiger", "unicorn", "vulture", "wolf", "x-ray fish", "yak", "zebra",
-            "arm", "book", "car", "desk", "ear", "fan", "game", "hat", "ice", "juice", "key", "lamp", "map", "nose", "oven", "pen", "queen", "ring", "sun", "tree", "umbrella", "van", "window", "xylophone", "yarn", "zoo", "air", "ball", "cloud", "dream", "earth", "fire", "grass", "house", "island", "joke", "king", "love", "moon", "night", "ocean", "plant", "quiet", "rain", "star", "time", "under", "voice", "water", "yellow", "zone"
+            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "watermelon", "avocado","blueberry", "cranberry", "dragonfruit", "eggplant", "guava", "jackfruit", "kumquat", "lime", "mulberry", "peach", "pineapple", "pear", "plum", "pomegranate", "carrot", "broccoli", "zucchini", "spinach", "lettuce","ant", "bear", "cat", "dog", "elephant", "fox", "giraffe", "horse", "iguana", "jaguar", "kangaroo", "lion", "monkey", "newt", "owl", "pig", "quail", "rabbit", "snake", "tiger", "unicorn", "vulture", "wolf", "yak", "zebra"
         ];
 
         const container = document.getElementById("word-container");
@@ -110,12 +128,11 @@
             container.style.display = "flex";
             container.innerHTML = "";
 
-            words.sort(() => Math.random() - 0.5).forEach((word, index) => {
+            words.sort(() => Math.random() - 0.5).forEach(word => {
                 const wordElement = document.createElement("div");
                 wordElement.textContent = word;
                 wordElement.className = "word";
                 wordElement.draggable = true;
-                wordElement.dataset.index = index;
                 container.appendChild(wordElement);
             });
 
@@ -126,13 +143,37 @@
             const wordElements = Array.from(container.children);
 
             wordElements.forEach((wordElement) => {
+                // Desktop Drag Events
                 wordElement.addEventListener("dragstart", (e) => {
                     e.dataTransfer.setData("text/plain", e.target.dataset.index);
                     e.target.classList.add("dragging");
                 });
 
+                wordElement.addEventListener("dragend", () => {
+                    wordElement.classList.remove("dragging");
+                    checkOrder();
+                });
+
+                // Mobile Touch Events
+                let touchStartY = 0;
+
                 wordElement.addEventListener("touchstart", (e) => {
+                    touchStartY = e.touches[0].clientY;
                     wordElement.classList.add("dragging");
+                });
+
+                wordElement.addEventListener("touchmove", (e) => {
+                    e.preventDefault();
+                    const touchY = e.touches[0].clientY;
+                    const afterElement = getDragAfterElement(container, touchY);
+
+                    const draggingElement = document.querySelector(".dragging");
+
+                    if (afterElement == null) {
+                        container.appendChild(draggingElement);
+                    } else if (afterElement !== draggingElement.nextSibling) {
+                        container.insertBefore(draggingElement, afterElement);
+                    }
                 });
 
                 wordElement.addEventListener("touchend", () => {
@@ -141,27 +182,18 @@
                 });
             });
 
+            // Shared Dragover Event for Desktop
             container.addEventListener("dragover", (e) => {
                 e.preventDefault();
-                handleDragDrop(e.clientY);
+                const draggingElement = document.querySelector(".dragging");
+                const afterElement = getDragAfterElement(container, e.clientY);
+
+                if (afterElement == null) {
+                    container.appendChild(draggingElement);
+                } else if (afterElement !== draggingElement.nextSibling) {
+                    container.insertBefore(draggingElement, afterElement);
+                }
             });
-
-            container.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                handleDragDrop(touch.clientY);
-            });
-        }
-
-        function handleDragDrop(y) {
-            const draggingElement = document.querySelector(".dragging");
-            const afterElement = getDragAfterElement(container, y);
-
-            if (afterElement == null) {
-                container.appendChild(draggingElement);
-            } else {
-                container.insertBefore(draggingElement, afterElement);
-            }
         }
 
         function getDragAfterElement(container, y) {
@@ -192,7 +224,24 @@
                 Array.from(container.children).forEach(word => {
                     word.style.backgroundColor = "#35631f";
                 });
+
+                // Show the "Again?" link
+                document.getElementById("again-link").style.display = "inline";
             }
+        }
+
+        // Reset to start a new game
+        function resetGame() {
+            // Reset the game state completely
+            document.getElementById("title-screen").style.display = "flex";
+            document.getElementById("game-screen").style.display = "none";
+            document.getElementById("result").textContent = "";
+            document.getElementById("again-link").style.display = "none";
+
+            container.innerHTML = "";
+            container.style.pointerEvents = "auto";
+
+            startTime = null;
         }
     </script>
 </body>
