@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alphabetical Sorting Testing</title>
+    <title>Alphabetical Sorting Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,7 +70,7 @@
 </head>
 <body>
     <div id="title-screen">
-        <h1>Alphabetical Sorting Testing</h1>
+        <h1>Alphabetical Sorting Game</h1>
         <label for="word-count">Words:</label>
         <br>
         <input type="number" id="word-count" min="1" max="50" value="20">
@@ -84,11 +84,11 @@
     </div>
 
     <script>
-const dictionary = [
-    "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "watermelon", "avocado", "blueberry", "cranberry", "dragonfruit", "eggplant", "guava", "jackfruit", "kumquat", "lime", "mulberry", "peach", "pineapple", "pear", "plum", "pomegranate", "carrot", "broccoli", "zucchini", "spinach", "lettuce", "cucumber", "tomato", "onion", "potato", "radish", "parsnip", "celery", "turnip", "beet", "pepper", "chili", "corn", "cauliflower", "brussels sprout", "asparagus", "okra", "cabbage", "artichoke", "swede", "yam", "ginger", "parsley", "basil", "oregano", "thyme", "dill",
-    "ant", "bear", "cat", "dog", "elephant", "fox", "giraffe", "horse", "iguana", "jaguar", "kangaroo", "lion", "monkey", "newt", "owl", "pig", "quail", "rabbit", "snake", "tiger", "unicorn", "vulture", "wolf", "x-ray fish", "yak", "zebra",
-    "arm", "book", "car", "desk", "ear", "fan", "game", "hat", "ice", "juice", "key", "lamp", "map", "nose", "oven", "pen", "queen", "ring", "sun", "tree", "umbrella", "van", "window", "xylophone", "yarn", "zoo","air", "ball", "cloud", "dream", "earth", "fire", "grass", "house", "island", "joke", "king", "love", "moon", "night", "ocean", "plant", "quiet", "rain", "star", "time", "under", "voice", "water", "yellow", "zone"
-];
+        const dictionary = [
+            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "strawberry", "tangerine", "ugli", "watermelon", "avocado", "blueberry", "cranberry", "dragonfruit", "eggplant", "guava", "jackfruit", "kumquat", "lime", "mulberry", "peach", "pineapple", "pear", "plum", "pomegranate", "carrot", "broccoli", "zucchini", "spinach", "lettuce", "cucumber", "tomato", "onion", "potato", "radish", "parsnip", "celery", "turnip", "beet", "pepper", "chili", "corn", "cauliflower", "brussels sprout", "asparagus", "okra", "cabbage", "artichoke", "swede", "yam", "ginger", "parsley", "basil", "oregano", "thyme", "dill",
+            "ant", "bear", "cat", "dog", "elephant", "fox", "giraffe", "horse", "iguana", "jaguar", "kangaroo", "lion", "monkey", "newt", "owl", "pig", "quail", "rabbit", "snake", "tiger", "unicorn", "vulture", "wolf", "x-ray fish", "yak", "zebra",
+            "arm", "book", "car", "desk", "ear", "fan", "game", "hat", "ice", "juice", "key", "lamp", "map", "nose", "oven", "pen", "queen", "ring", "sun", "tree", "umbrella", "van", "window", "xylophone", "yarn", "zoo", "air", "ball", "cloud", "dream", "earth", "fire", "grass", "house", "island", "joke", "king", "love", "moon", "night", "ocean", "plant", "quiet", "rain", "star", "time", "under", "voice", "water", "yellow", "zone"
+        ];
 
         const container = document.getElementById("word-container");
         let words = [];
@@ -110,11 +110,12 @@ const dictionary = [
             container.style.display = "flex";
             container.innerHTML = "";
 
-            words.sort(() => Math.random() - 0.5).forEach(word => {
+            words.sort(() => Math.random() - 0.5).forEach((word, index) => {
                 const wordElement = document.createElement("div");
                 wordElement.textContent = word;
                 wordElement.className = "word";
                 wordElement.draggable = true;
+                wordElement.dataset.index = index;
                 container.appendChild(wordElement);
             });
 
@@ -130,7 +131,11 @@ const dictionary = [
                     e.target.classList.add("dragging");
                 });
 
-                wordElement.addEventListener("dragend", () => {
+                wordElement.addEventListener("touchstart", (e) => {
+                    wordElement.classList.add("dragging");
+                });
+
+                wordElement.addEventListener("touchend", () => {
                     wordElement.classList.remove("dragging");
                     checkOrder();
                 });
@@ -138,15 +143,25 @@ const dictionary = [
 
             container.addEventListener("dragover", (e) => {
                 e.preventDefault();
-                const draggingElement = document.querySelector(".dragging");
-                const afterElement = getDragAfterElement(container, e.clientY);
-
-                if (afterElement == null) {
-                    container.appendChild(draggingElement);
-                } else {
-                    container.insertBefore(draggingElement, afterElement);
-                }
+                handleDragDrop(e.clientY);
             });
+
+            container.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleDragDrop(touch.clientY);
+            });
+        }
+
+        function handleDragDrop(y) {
+            const draggingElement = document.querySelector(".dragging");
+            const afterElement = getDragAfterElement(container, y);
+
+            if (afterElement == null) {
+                container.appendChild(draggingElement);
+            } else {
+                container.insertBefore(draggingElement, afterElement);
+            }
         }
 
         function getDragAfterElement(container, y) {
