@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time. ⏰</title>
+    <style>
+        body {
+            font-family: noto sans, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: black;
+            color: #f0f0f0;
+        }
+
+        .progress-container {
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear, background-color 0.1s linear;
+        }
+
+        .percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .fraction {
+            color: gray;
+            font-size: 0.8em;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .real-time {
+            color: gray;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+	<h1>Time. ⏰</h1>
+    <div class="progress-container">
+        <h1>Day <span class="fraction" id="day-fraction"></span></h1>
+        <div class="progress-bar">
+            <div class="progress" id="day-progress"></div>
+            <div class="percentage" id="day-percentage">0.000%</div>
+        </div>
+    </div>
+
+    <div class="progress-container">
+        <h2>Hour <span class="fraction" id="hour-fraction"></span></h2>
+        <div class="progress-bar">
+            <div class="progress" id="hour-progress"></div>
+            <div class="percentage" id="hour-percentage">0.000%</div>
+        </div>
+    </div>
+
+    <div class="progress-container">
+        <h3>Minute <span class="fraction" id="minute-fraction"></span></h3>
+        <div class="progress-bar">
+            <div class="progress" id="minute-progress"></div>
+            <div class="percentage" id="minute-percentage">0.000%</div>
+        </div>
+    </div>
+
+    <p class="real-time">It's <span id="current-time"></span>.</p>
+
+    <script>
+        function updateProgress(progressId, percentageId, fractionId, totalMilliseconds) {
+            const now = new Date();
+            let startTime;
+
+            if (progressId === "day-progress") {
+                startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            } else if (progressId === "hour-progress") {
+                startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0);
+            } else {
+                startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0);
+            }
+
+            const elapsedMilliseconds = now - startTime;
+            const numerator = Math.floor(elapsedMilliseconds / 1000);
+            const denominator = totalMilliseconds / 1000;
+            const fractionText = `${numerator}/${denominator}`;
+
+            const percentage = (numerator / denominator) * 100;
+
+            const progressElement = document.getElementById(progressId);
+            progressElement.style.width = percentage + "%";
+
+            const green = Math.round(255 * (percentage / 100));
+            const red = Math.round(255 * (1 - (percentage / 100)));
+
+            progressElement.style.backgroundColor = `rgb(${red}, ${green}, 0)`;
+
+            document.getElementById(percentageId).textContent = percentage.toFixed(3) + "%";
+            document.getElementById(fractionId).textContent = fractionText;
+        }
+
+        function updateAllProgress() {
+            updateProgress("day-progress", "day-percentage", "day-fraction", 24 * 60 * 60 * 1000);
+            updateProgress("hour-progress", "hour-percentage", "hour-fraction", 60 * 60 * 1000);
+            updateProgress("minute-progress", "minute-percentage", "minute-fraction", 60 * 1000);
+        }
+
+        function updateRealTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            const formattedTime = `${year}.${month}.${day}, ${hours}:${minutes}:${seconds}`;
+            document.getElementById("current-time").textContent = formattedTime;
+        }
+
+        setInterval(updateAllProgress, 1000);
+        setInterval(updateRealTime, 1000);
+
+        updateAllProgress();
+        updateRealTime();
+    </script>
+
+</body>
+</html>
