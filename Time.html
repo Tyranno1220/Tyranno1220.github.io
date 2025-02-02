@@ -6,7 +6,7 @@
     <title>Time. ⏰</title>
     <style>
         body {
-            font-family: noto sans, sans-serif;
+            font-family: 'Noto Sans', sans-serif;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -15,10 +15,13 @@
             margin: 0;
             background-color: black;
             color: #f0f0f0;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .progress-container {
-            width: 300px;
+            width: 100%;
+            max-width: 300px;
             margin-bottom: 20px;
         }
 
@@ -57,11 +60,47 @@
             color: gray;
             font-size: 0.8em;
             margin-top: 5px;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin: 10px 0;
+            padding-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            h2 {
+                font-size: 1.2em;
+            }
+
+            h3 {
+                font-size: 1em;
+            }
+
+            .progress-bar {
+                height: 15px;
+            }
+
+            .percentage {
+                font-size: 0.8em;
+            }
+
+            .fraction {
+                font-size: 0.7em;
+            }
+
+            .real-time {
+                font-size: 0.7em;
+            }
         }
     </style>
 </head>
 <body>
-	<h1>Time. ⏰</h1>
+    <h1>Time. ⏰</h1>
     <div class="progress-container">
         <h1>Day <span class="fraction" id="day-fraction"></span></h1>
         <div class="progress-bar">
@@ -145,6 +184,5 @@
         updateAllProgress();
         updateRealTime();
     </script>
-
 </body>
 </html>
