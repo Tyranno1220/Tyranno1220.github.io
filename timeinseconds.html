@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time to seconds</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Noto Sans;
+      text-align: center;
+      padding-top: 100px;
+      font-size:1.5em;
+    }
+
+    input {
+      padding: 5px;
+    }
+
+    button {
+      background-color: transparent;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    #result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+ <h1>Time to seconds</h1>
+  <input type="text" id="timeInput" placeholder="HH:MM:SS">
+  <button onclick="calculateSeconds()">✅</button>
+
+  <div id="result"></div>
+
+  <script>
+    function calculateSeconds() {
+      const timeInput = document.getElementById('timeInput').value;
+      const timeParts = timeInput.split(':');
+      
+      if (timeParts.length !== 3) {
+        document.getElementById('result').innerText = "Invalid.";
+        return;
+      }
+
+      const hours = parseInt(timeParts[0]);
+      const minutes = parseInt(timeParts[1]);
+      const seconds = parseInt(timeParts[2]);
+
+      if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+        document.getElementById('result').innerText = "Invalid.";
+        return;
+      }
+
+      const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+      copyToClipboard(totalSeconds);
+      document.getElementById('result').innerText = `${totalSeconds}`;
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+  </script>
+</body>
+</html>
