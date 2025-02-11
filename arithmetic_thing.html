@@ -56,6 +56,7 @@
         #worstQuestions table {
             margin: 0 auto;
             border-collapse: collapse;
+            color:#666666;
         }
         #worstQuestions table, #worstQuestions th, #worstQuestions td {
             padding-right: 30px;
@@ -173,13 +174,13 @@
 
     function showWorstQuestions() {
         const worstQuestionsElement = document.getElementById('worstQuestions');
-        let worstQuestionsHTML = '<h2 style="padding-top:2em;color:#333333"> Your worst questions (s)</h2>';
+        let worstQuestionsHTML = '<h2 style="padding-top:2em;color:#333333;">Times taken</h2>';
         worstQuestionsHTML += '<table>';
 
         timeConsumingQuestions.sort((a, b) => b.time - a.time);
-        const top10 = timeConsumingQuestions.slice(0, 10);
-        top10.forEach(q => {
-            worstQuestionsHTML += `<tr><td>${q.question}</td><td>${q.time.toFixed(2)}</td></tr>`;
+
+        timeConsumingQuestions.forEach(q => {
+            worstQuestionsHTML += `<tr><td>${q.question}</td><td>${q.time.toFixed(2)}s</td></tr>`;
         });
 
         worstQuestionsHTML += '</table>';
