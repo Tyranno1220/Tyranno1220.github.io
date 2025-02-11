@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="/test/Ethanol.ico">
+    <link rel="icon" type="image/png" href="/test/Ethanol.ico">
     <title>Arithmetic thing.</title>
     <style>
         body {
@@ -48,7 +48,18 @@
         div#timer {
             color: #666666;
         }
-        
+        #worstQuestions {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #999999;
+        }
+        #worstQuestions table {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        #worstQuestions table, #worstQuestions th, #worstQuestions td {
+            padding-right: 30px;
+        }
         @media (max-width: 768px) {
             #question {
                 font-size: 2.3em;
@@ -56,7 +67,7 @@
                 margin-left: 5vw;
                 text-wrap: no-wrap;
             }
-            
+        }
     </style>
 </head>
 <body>
@@ -65,6 +76,7 @@
     <div id="score">0</div>
     <div id="timer">120</div>
     <button id="startButton" onclick="startQuiz()">→</button>
+    <div id="worstQuestions"></div>
 
     <script>
     let score = 0;
@@ -73,6 +85,8 @@
     let currentAnswer = 0;
     let timerInterval;
     let quizActive = false;
+    let questionStartTime;
+    let timeConsumingQuestions = [];
 
     function getRandomNumber(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -106,18 +120,21 @@
 
         currentAnswer = eval(`${num1} ${operator} ${num2}`);
         document.getElementById('question').innerText = `${num1} ${operator} ${num2}`;
+        questionStartTime = Date.now();
     }
 
     function startQuiz() {
         score = 0;
         timeLeft = defaultTime;
         quizActive = true;
+        timeConsumingQuestions = [];
         document.getElementById('score').innerText = score;
         document.getElementById('timer').innerText = `${timeLeft}`;
         document.getElementById('answer').value = '';
         document.getElementById('answer').disabled = false;
         document.getElementById('answer').focus();
         document.getElementById('startButton').style.display = 'none';
+        document.getElementById('worstQuestions').innerHTML = '';
 
         generateQuestion();
 
@@ -132,6 +149,7 @@
                 document.getElementById('answer').disabled = true;
                 document.getElementById('startButton').style.display = 'block';
                 quizActive = false;
+                showWorstQuestions();
             }
         }, 1000);
 
@@ -141,11 +159,31 @@
     function checkAnswer() {
         const userAnswer = parseInt(document.getElementById('answer').value, 10);
         if (userAnswer === currentAnswer) {
+            const timeTaken = (Date.now() - questionStartTime) / 1000;
+            const questionText = document.getElementById('question').innerText;
+
+            timeConsumingQuestions.push({ question: questionText, time: timeTaken });
+
             score++;
             document.getElementById('score').innerText = score;
             document.getElementById('answer').value = '';
             generateQuestion();
         }
+    }
+
+    function showWorstQuestions() {
+        const worstQuestionsElement = document.getElementById('worstQuestions');
+        let worstQuestionsHTML = '<h2 style="padding-top:2em;color:#333333"> Your worst questions (s)</h2>';
+        worstQuestionsHTML += '<table>';
+
+        timeConsumingQuestions.sort((a, b) => b.time - a.time);
+        const top10 = timeConsumingQuestions.slice(0, 10);
+        top10.forEach(q => {
+            worstQuestionsHTML += `<tr><td>${q.question}</td><td>${q.time.toFixed(2)}</td></tr>`;
+        });
+
+        worstQuestionsHTML += '</table>';
+        worstQuestionsElement.innerHTML = worstQuestionsHTML;
     }
 
     document.getElementById('timer').addEventListener('click', () => {
