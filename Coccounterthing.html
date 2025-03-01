@@ -136,7 +136,8 @@
                 }
 
                 let reason = null;
-                const sanitizedMessage = message.trim().match(/\b\d+\b/);
+                // Remove commas from the message before extracting numbers
+                const sanitizedMessage = message.replace(/,/g, '').trim().match(/\b\d+\b/);
                 if (sanitizedMessage) {
                     const countNumber = parseInt(sanitizedMessage[0], 10);
                     if (!timestamp.endsWith(':00') && !timestamp.endsWith(':30')) {
@@ -197,8 +198,9 @@
             if (validEntries.length) {
                 const firstMessage = validEntries[0].match(/: (.+)/)[1];
                 const lastMessage = validEntries[validEntries.length - 1].match(/: (.+)/)[1];
-                firstNumber = parseInt(firstMessage.match(/\b(\d+)\b/)[1], 10);
-                lastNumber = parseInt(lastMessage.match(/\b(\d+)\b/)[1], 10);
+                // Remove commas before parsing numbers
+                firstNumber = parseInt(firstMessage.replace(/,/g, '').match(/\b(\d+)\b/)[1], 10);
+                lastNumber = parseInt(lastMessage.replace(/,/g, '').match(/\b(\d+)\b/)[1], 10);
                 observedCountNumber = firstNumber + totalCounted - 1;
                 observedCount = lastNumber - firstNumber + 1;
             }
