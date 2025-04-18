@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/test/Ethanol.ico">
+    <title>Square Numbers Thing.</title>
+    <style>
+        body {
+            font-family: Noto Sans, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            color: white;
+            background-color: black;
+        }
+        #question {
+            text-align: center;
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            margin-right: 35vw;
+            margin-left: 35vw;
+        }
+        #score, #timer {
+            padding: 10px;
+            font-size: 1em;
+            display: inline-block;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            font-size: 18px;
+            padding: 5px;
+            -moz-appearance: textfield;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 3vh;
+        }
+        #minNumInput, #maxNumInput {
+            font-size: 18px;
+            padding: 5px;
+            width: 50px;
+            text-align: center;
+            background-color: black;
+            color: white;
+            border: 1px solid #666;
+            margin-right: 10px;
+            -moz-appearance: textfield;
+        }
+        button#startButton {
+            font-size: 18px;
+            padding: 5px 10px;
+            margin: 0;
+            text-align: center;
+            color: white;
+            background-color: transparent;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+        div#timer {
+            color: #666666;
+        }
+        #worstQuestions {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #999999;
+        }
+        #worstQuestions table {
+            margin: 0 auto;
+            border-collapse: collapse;
+            color:#666666;
+        }
+        #worstQuestions table, #worstQuestions th, #worstQuestions td {
+            padding-right: 30px;
+        }
+        @media (max-width: 768px) {
+            #question {
+                font-size: 2.3em;
+                margin-right: 5vw;
+                margin-left: 5vw;
+                text-wrap: no-wrap;
+            }
+             #minNumInput, #maxNumInput {
+                width: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="question"><p style="color:#999999; font-size:0.75em;">square numbers thing</p></div>
+    <input type="number" id="answer" placeholder="" disabled>
+    <div id="score">0</div>
+    <div id="timer">120</div>
+
+    <div id="controls">
+        <input type="number" id="minNumInput" value="1" title="Minimum number">
+        <input type="number" id="maxNumInput" value="100" title="Maximum number">
+        <button id="startButton" onclick="startQuiz()" title="Start Quiz">→</button>
+    </div>
+
+    <div id="worstQuestions"></div>
+
+    <script>
+    let score = 0;
+    let timeLeft = 120;
+    let defaultTime = 120;
+    let currentAnswer = 0;
+    let timerInterval;
+    let quizActive = false;
+    let questionStartTime;
+    let timeConsumingQuestions = [];
+    let minNumber = 1;
+    let maxNumber = 100;
+
+    const minInput = document.getElementById('minNumInput');
+    const maxInput = document.getElementById('maxNumInput');
+    const startButton = document.getElementById('startButton');
+    const answerInput = document.getElementById('answer');
+    const questionDiv = document.getElementById('question');
+    const scoreDiv = document.getElementById('score');
+    const timerDiv = document.getElementById('timer');
+    const worstQuestionsDiv = document.getElementById('worstQuestions');
+
+
+    function getRandomNumber(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        if (min > max) {
+            [min, max] = [max, min];
+        }
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+        let num1;
+        num1 = getRandomNumber(minNumber, maxNumber);
+        currentAnswer = num1 * num1;
+        questionDiv.innerHTML = `${num1}<sup>2</sup>`;
+        questionStartTime = Date.now();
+    }
+
+    function startQuiz() {
+        let inputMin = parseInt(minInput.value, 10);
+        let inputMax = parseInt(maxInput.value, 10);
+
+        if (isNaN(inputMin) || inputMin < 1) {
+            alert("Minimum value is invalid. Using 1.");
+            inputMin = 1;
+            minInput.value = 1;
+        }
+        if (isNaN(inputMax) || inputMax < inputMin) {
+             alert("Maximum value is invalid or less than minimum. Adjusting.");
+             inputMax = Math.max(inputMin, 100);
+             maxInput.value = inputMax;
+        }
+
+        minNumber = inputMin;
+        maxNumber = inputMax;
+
+
+        score = 0;
+        timeLeft = defaultTime;
+        quizActive = true;
+        timeConsumingQuestions = [];
+        scoreDiv.innerText = score;
+        timerDiv.innerText = `${timeLeft}`;
+        answerInput.value = '';
+        answerInput.disabled = false;
+        answerInput.focus();
+        startButton.style.display = 'none';
+        minInput.disabled = true;
+        maxInput.disabled = true;
+        worstQuestionsDiv.innerHTML = '';
+
+        generateQuestion();
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDiv.innerText = `${timeLeft}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                questionDiv.innerText = "⌛";
+                answerInput.disabled = true;
+                startButton.style.display = 'inline-block';
+                minInput.disabled = false;
+                maxInput.disabled = false;
+                quizActive = false;
+                showWorstQuestions();
+            }
+        }, 1000);
+
+        answerInput.removeEventListener('input', checkAnswer);
+        answerInput.addEventListener('input', checkAnswer);
+    }
+
+    function checkAnswer() {
+        if (answerInput.value === '') {
+            return;
+        }
+
+        const userAnswer = parseInt(answerInput.value, 10);
+        if (!isNaN(userAnswer) && userAnswer === currentAnswer) {
+            const timeTaken = (Date.now() - questionStartTime) / 1000;
+            const questionText = questionDiv.innerHTML;
+
+            timeConsumingQuestions.push({ question: questionText, time: timeTaken });
+
+            score++;
+            scoreDiv.innerText = score;
+            answerInput.value = '';
+            generateQuestion();
+        }
+    }
+
+    function showWorstQuestions() {
+        if (timeConsumingQuestions.length === 0) return;
+
+        let worstQuestionsHTML = '<h2 style="padding-top:2em;color:#333333;">Times taken</h2>';
+        worstQuestionsHTML += '<table>';
+
+        timeConsumingQuestions.sort((a, b) => b.time - a.time);
+
+        timeConsumingQuestions.forEach(q => {
+            worstQuestionsHTML += `<tr><td>${q.question}</td><td>${q.time.toFixed(2)}s</td></tr>`;
+        });
+
+        worstQuestionsHTML += '</table>';
+        worstQuestionsDiv.innerHTML = worstQuestionsHTML;
+    }
+
+    timerDiv.addEventListener('click', () => {
+        if (!quizActive) {
+            const newTime = prompt('that\'s your timer. how many seconds do you want?');
+            if (newTime && !isNaN(newTime) && newTime > 0) {
+                defaultTime = parseInt(newTime, 10);
+                timeLeft = defaultTime;
+                timerDiv.innerText = `${timeLeft}`;
+            }
+        } else {
+            alert("❌ Can't change timer during the quiz!");
+        }
+    });
+
+    scoreDiv.addEventListener('click', () => {
+        alert('that\'s your score.');
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (!quizActive && startButton.style.display !== 'none' && event.key === 'Enter') {
+             if (document.activeElement !== minInput && document.activeElement !== maxInput) {
+                startQuiz();
+             }
+        }
+    });
+    </script>
+
+</body>
+</html>
