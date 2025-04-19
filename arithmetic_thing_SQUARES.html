@@ -100,22 +100,13 @@
     <div id="controls">
         <input type="number" id="minNumInput" value="1" title="Minimum number">
         <input type="number" id="maxNumInput" value="100" title="Maximum number">
-        <button id="startButton" onclick="startQuiz()" title="Start Quiz">→</button>
+        <button id="startButton" onclick="startQuiz()" title="Start">→</button>
     </div>
 
     <div id="worstQuestions"></div>
 
     <script>
-    let score = 0;
-    let timeLeft = 120;
-    let defaultTime = 120;
-    let currentAnswer = 0;
-    let timerInterval;
-    let quizActive = false;
-    let questionStartTime;
-    let timeConsumingQuestions = [];
-    let minNumber = 1;
-    let maxNumber = 100;
+    let score = 0; let timeLeft = 120; let defaultTime = 120; let currentAnswer = 0; let timerInterval; let quizActive = false; let questionStartTime; let timeConsumingQuestions = [];let minNumber = 1; let maxNumber = 100;  let lastNumber = null;
 
     const minInput = document.getElementById('minNumInput');
     const maxInput = document.getElementById('maxNumInput');
@@ -138,7 +129,11 @@
 
     function generateQuestion() {
         let num1;
-        num1 = getRandomNumber(minNumber, maxNumber);
+        do {
+             num1 = getRandomNumber(minNumber, maxNumber);
+        } while (num1 === lastNumber && (maxNumber - minNumber + 1) > 1);
+
+        lastNumber = num1;
         currentAnswer = num1 * num1;
         questionDiv.innerHTML = `${num1}<sup>2</sup>`;
         questionStartTime = Date.now();
@@ -149,33 +144,26 @@
         let inputMax = parseInt(maxInput.value, 10);
 
         if (isNaN(inputMin) || inputMin < 1) {
-            alert("Minimum value is invalid. Using 1.");
+            alert("Minimum value needs to be more than 1");
             inputMin = 1;
             minInput.value = 1;
         }
         if (isNaN(inputMax) || inputMax < inputMin) {
-             alert("Maximum value is invalid or less than minimum. Adjusting.");
+             alert("Maximum value is invalid or less than minimum.");
              inputMax = Math.max(inputMin, 100);
              maxInput.value = inputMax;
         }
 
-        minNumber = inputMin;
-        maxNumber = inputMax;
-
-
-        score = 0;
-        timeLeft = defaultTime;
-        quizActive = true;
+        minNumber = inputMin; maxNumber = inputMax;
+        score = 0; timeLeft = defaultTime; quizActive = true;
+        
         timeConsumingQuestions = [];
-        scoreDiv.innerText = score;
-        timerDiv.innerText = `${timeLeft}`;
-        answerInput.value = '';
-        answerInput.disabled = false;
-        answerInput.focus();
-        startButton.style.display = 'none';
-        minInput.disabled = true;
-        maxInput.disabled = true;
+        scoreDiv.innerText = score; timerDiv.innerText = `${timeLeft}`;
+        
+        answerInput.value = ''; answerInput.disabled = false; answerInput.focus();
+        startButton.style.display = 'none'; minInput.disabled = true; maxInput.disabled = true;
         worstQuestionsDiv.innerHTML = '';
+        lastNumber = null;
 
         generateQuestion();
 
@@ -189,8 +177,7 @@
                 questionDiv.innerText = "⌛";
                 answerInput.disabled = true;
                 startButton.style.display = 'inline-block';
-                minInput.disabled = false;
-                maxInput.disabled = false;
+                minInput.disabled = false; maxInput.disabled = false;
                 quizActive = false;
                 showWorstQuestions();
             }
@@ -210,7 +197,20 @@
             const timeTaken = (Date.now() - questionStartTime) / 1000;
             const questionText = questionDiv.innerHTML;
 
-            timeConsumingQuestions.push({ question: questionText, time: timeTaken });
+            let found = false;
+            for(let i = 0; i < timeConsumingQuestions.length; i++) {
+                if (timeConsumingQuestions[i].question === questionText) {
+                    if (timeTaken > timeConsumingQuestions[i].time) {
+                        timeConsumingQuestions[i].time = timeTaken;
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                 timeConsumingQuestions.push({ question: questionText, time: timeTaken });
+            }
+
 
             score++;
             scoreDiv.innerText = score;
@@ -220,14 +220,22 @@
     }
 
     function showWorstQuestions() {
-        if (timeConsumingQuestions.length === 0) return;
+        const slowQuestions = timeConsumingQuestions.filter(q => q.time > 0);
+
+        if (slowQuestions.length === 0) return;
 
         let worstQuestionsHTML = '<h2 style="padding-top:2em;color:#333333;">Times taken</h2>';
         worstQuestionsHTML += '<table>';
 
-        timeConsumingQuestions.sort((a, b) => b.time - a.time);
+        // Sort by time taken, descending
+        slowQuestions.sort((a, b) => b.time - a.time);
 
-        timeConsumingQuestions.forEach(q => {
+        // Get the top N, or all if fewer than N (e.g., top 10)
+        const topN = 10;
+        const questionsToShow = slowQuestions.slice(0, topN);
+
+
+        questionsToShow.forEach(q => {
             worstQuestionsHTML += `<tr><td>${q.question}</td><td>${q.time.toFixed(2)}s</td></tr>`;
         });
 
@@ -244,7 +252,12 @@
                 timerDiv.innerText = `${timeLeft}`;
             }
         } else {
-            alert("❌ Can't change timer during the quiz!");
+            const newTime = prompt('changing the time is cheating. but i\'ll allow it.');
+            if (newTime && !isNaN(newTime) && newTime > 0) {
+            defaultTime = parseInt(newTime, 10);
+            timeLeft = defaultTime;
+            timerDiv.innerText = `${timeLeft}`;
+                    }
         }
     });
 
@@ -255,7 +268,7 @@
     document.addEventListener('keydown', (event) => {
         if (!quizActive && startButton.style.display !== 'none' && event.key === 'Enter') {
              if (document.activeElement !== minInput && document.activeElement !== maxInput) {
-                startQuiz();
+                 startQuiz();
              }
         }
     });
