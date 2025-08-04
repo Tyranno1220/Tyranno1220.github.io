@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arithmetic thing.</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: Noto Sans, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            color: white;
+            background-color: black;
+        }
+        #question-area {
+            text-align: center;
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            margin-right: 35vw;
+            margin-left: 35vw;
+        }
+        #input-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #questionsLeft {
+            padding: 10px;
+            font-size: 1em;
+            color: #666666;
+            cursor: pointer;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            font-size: 18px;
+            padding: 5px;
+            -moz-appearance: textfield;
+        }
+        button {
+            font-size: 18px;
+            padding: 5px 10px;
+            margin: 10px auto;
+            display: block;
+            text-align: center;
+            color: white;
+            background-color: transparent;
+        }
+        #resultsContainer h2 {
+            font-size: 3.5em;
+            margin-bottom: 0;
+            margin-top: 20px;
+        }
+        #resultsContainer .subtitle {
+            font-size: 1em;
+            color: #999999;
+            margin-top: 5px;
+        }
+        #resultsTable {
+            width: 100%;
+            max-width: 400px;
+            margin: 30px auto;
+            border-collapse: collapse;
+            font-size: 1em;
+            color: #cccccc;
+        }
+        #resultsTable th, #resultsTable td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        #resultsTable th {
+            font-size: 0.9em;
+            color: #999999;
+        }
+        
+        @media (max-width: 768px) {
+            #question-area, #resultsContainer h2 {
+                font-size: 2.3em;
+                margin-right: 5vw;
+                margin-left: 5vw;
+            }
+            #question-area {
+                text-wrap: no-wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="question-area">
+        <p style="color:#999999; font-size:0.75em;">
+            arithmetic thing
+            <br>
+            <span style="font-size:0.5em;">speedrun mode</span>
+        </p>
+    </div>
+
+    <div id="input-wrapper">
+        <input type="number" id="answer" placeholder="" disabled>
+        <div id="questionsLeft">50</div>
+    </div>
+    
+    <button id="startButton" onclick="startQuiz()">→</button>
+    
+    <div id="resultsContainer"></div>
+
+    <script>
+    let targetQuestions = 50;
+    let questionsAnswered = 0;
+    let currentAnswer = 0;
+    let quizActive = false;
+    let startTime;
+    let questionStartTime;
+    let answeredQuestions = [];
+
+    const questionAreaEl = document.getElementById('question-area');
+    const inputWrapper = document.getElementById('input-wrapper');
+    const answerEl = document.getElementById('answer');
+    const questionsLeftEl = document.getElementById('questionsLeft');
+    const startButton = document.getElementById('startButton');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const bodyEl = document.body;
+
+    function getRandomNumber(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+        const operators = ['+', '-', '*', '/'];
+        const operator = operators[getRandomNumber(0, operators.length - 1)];
+        let num1, num2;
+
+        if (operator === '+') {
+            num1 = getRandomNumber(2, 100);
+            num2 = getRandomNumber(2, 100);
+        } else if (operator === '-') {
+            num1 = getRandomNumber(2, 100);
+            num2 = getRandomNumber(2, num1);
+        } else if (operator === '*') {
+            num1 = getRandomNumber(2, 12);
+            num2 = getRandomNumber(2, 100);
+        } else if (operator === '/') {
+            do {
+                num2 = getRandomNumber(2, 12);
+                num1 = num2 * getRandomNumber(2, 10);
+            } while (num1 === num2 || num1 / num2 < 2);
+        }
+
+        currentAnswer = eval(`${num1} ${operator} ${num2}`);
+        questionAreaEl.innerText = `${num1} ${operator} ${num2}`;
+        questionStartTime = performance.now();
+    }
+
+    function startQuiz() {
+        bodyEl.insertBefore(inputWrapper, resultsContainer);
+        bodyEl.insertBefore(startButton, resultsContainer);
+        
+        resultsContainer.innerHTML = '';
+        resultsContainer.style.display = 'none';
+        questionAreaEl.style.display = 'block';
+        
+        questionsAnswered = 0;
+        answeredQuestions = [];
+        quizActive = true;
+        
+        questionsLeftEl.innerText = targetQuestions;
+        answerEl.value = '';
+        answerEl.disabled = false;
+        answerEl.focus();
+        startButton.innerText = "→";
+
+        startTime = performance.now();
+        generateQuestion();
+    }
+
+    function checkAnswer() {
+        const userAnswer = parseInt(answerEl.value, 10);
+        if (userAnswer === currentAnswer) {
+            const questionEndTime = performance.now();
+            const timeTaken = (questionEndTime - questionStartTime) / 1000;
+            
+            answeredQuestions.push({
+                question: questionAreaEl.innerText,
+                time: timeTaken
+            });
+
+            questionsAnswered++;
+            questionsLeftEl.innerText = targetQuestions - questionsAnswered;
+            answerEl.value = '';
+
+            if (questionsAnswered >= targetQuestions) {
+                endQuiz();
+            } else {
+                generateQuestion();
+            }
+        }
+    }
+
+    function endQuiz() {
+        quizActive = false;
+        const endTime = performance.now();
+        const totalTime = (endTime - startTime) / 1000;
+
+        answerEl.disabled = true;
+        startButton.innerText = "↻";
+        questionsLeftEl.innerText = "0";
+
+        const rect = questionsLeftEl.getBoundingClientRect();
+        const origin = {
+            x: (rect.left + rect.right) / 2 / window.innerWidth,
+            y: (rect.top + rect.bottom) / 2 / window.innerHeight
+        };
+        confetti({ particleCount: 150, spread: 90, origin: origin, zIndex: 9999 });
+
+        questionAreaEl.style.display = 'none';
+        resultsContainer.style.display = 'block';
+
+        answeredQuestions.sort((a, b) => b.time - a.time);
+
+        let resultsHTML = `
+            <h2>${totalTime.toFixed(2)}s</h2>
+            <p class="subtitle">${targetQuestions} questions</p>
+            <table id="resultsTable">
+                <thead>
+                    <tr><th>Times taken</th><th></th></tr>
+                </thead>
+                <tbody>
+        `;
+        answeredQuestions.forEach(item => {
+            resultsHTML += `<tr><td>${item.question}</td><td>${item.time.toFixed(2)}s</td></tr>`;
+        });
+        resultsHTML += '</tbody></table>';
+        
+        resultsContainer.innerHTML = resultsHTML;
+
+        resultsContainer.prepend(startButton);
+        resultsContainer.prepend(inputWrapper);
+    }
+
+    answerEl.addEventListener('input', () => {
+        if (quizActive) {
+            checkAnswer();
+        }
+    });
+
+    questionsLeftEl.addEventListener('click', () => {
+        if (!quizActive) {
+            const newCount = prompt("that's the amount of questions you have to do.", targetQuestions);
+            if (newCount && !isNaN(newCount) && parseInt(newCount, 10) > 0) {
+                targetQuestions = parseInt(newCount, 10);
+                questionsLeftEl.innerText = targetQuestions;
+            }
+        }
+    });
+
+    </script>
+</body>
+</html>
