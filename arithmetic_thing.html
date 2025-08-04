@@ -109,11 +109,11 @@
                 num2 = getRandomNumber(2, num1);
             } while (num1 - num2 === 0);
         } else if (operator === '*') {
-            num1 = getRandomNumber(2, 12);
+            num1 = getRandomNumber(2, 20);
             num2 = getRandomNumber(2, 100);
         } else if (operator === '/') {
             do {
-                num2 = getRandomNumber(2, 12);
+                num2 = getRandomNumber(2, 20);
                 const multiplier = getRandomNumber(2, 100);
                 num1 = num2 * multiplier;
             } while (num1 === num2);
