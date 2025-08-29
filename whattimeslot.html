@@ -6,19 +6,20 @@
     <title>What timeslot?</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body{background-color:#ffffff;font-family:'Inter',sans-serif;color:#1a202c;padding:2rem}
-        .container{max-width:600px;margin:auto;text-align:left}
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body{background-color:#f7fafc;font-family:'Inter',sans-serif;color:#1a202c;padding:2rem}
+        .container{max-width:600px;margin:auto;text-align:left; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);}
         h1{font-size:2rem;font-weight:700;margin-bottom:1.5rem;color:#2d3748}
-        .info-item{font-size:1.125rem;margin-bottom:0.5rem}
+        .info-item{font-size:1.125rem;margin-bottom:0.5rem; padding: 0.5rem; border-radius: 0.375rem;}
         .info-label{font-weight:600}
-        .subtitle{font-size:0.875rem;color:#6b7280;margin-top:-0.25rem;margin-left:1.5rem}
+        .subtitle{font-size:0.875rem;color:#4a5568;margin-top:0.25rem;margin-left:0.5rem}
         ul{list-style-type:none;padding-left:0;margin-top:2rem}
         .timeslot-item{margin-bottom:0.5rem;margin-left:1rem}
-        .list-title{font-size:1.25rem;font-weight:700;margin-bottom:1rem;padding-bottom:0.5rem}
-        .blue-number{color:#3b82f6}
+        .list-title{font-size:1.25rem;font-weight:700;margin-bottom:1rem;padding-bottom:0.5rem; border-bottom: 1px solid #e2e8f0;}
+        .blue-number{color:#3b82f6; font-weight: 700;}
     </style>
 </head>
-<body class="bg-white text-gray-900">
+<body class="bg-gray-100 text-gray-900">
 
     <div class="container bg-white p-8 rounded-lg">
         <h1 class="text-3xl font-bold mb-6">What timeslot?</h1>
@@ -55,102 +56,24 @@
         <div class="mt-8 pt-6">
             <h2 class="list-title text-xl font-bold">Timeslots:</h2>
             <ul>
-                <li class="timeslot-item"><span class="blue-number">1</span> - 06:00am - 08:59am</li>
-                <li class="timeslot-item"><span class="blue-number">2</span> - 09:00am - 11:59am</li>
-                <li class="timeslot-item"><span class="blue-number">3</span> - 12:00pm - 14:59pm</li>
-                <li class="timeslot-item"><span class="blue-number">4</span> - 15:00pm - 17:59pm</li>
-                <li class="timeslot-item"><span class="blue-number">5</span> - 18:00pm - 20:59pm</li>
-                <li class="timeslot-item"><span class="blue-number">6</span> - 21:00pm - 23:59pm</li>
-                <li class="timeslot-item"><span class="blue-number">7</span> - 00:00am - 02:59am</li>
-                <li class="timeslot-item"><span class="blue-number">8</span> - 03:00am - 05:59am</li>
+                <li class="timeslot-item"><span class="blue-number">1</span> - 06:00 - 08:59</li>
+                <li class="timeslot-item"><span class="blue-number">2</span> - 09:00 - 11:59</li>
+                <li class="timeslot-item"><span class="blue-number">3</span> - 12:00 - 14:59</li>
+                <li class="timeslot-item"><span class="blue-number">4</span> - 15:00 - 17:59</li>
+                <li class="timeslot-item"><span class="blue-number">5</span> - 18:00 - 20:59</li>
+                <li class="timeslot-item"><span class="blue-number">6</span> - 21:00 - 23:59</li>
+                <li class="timeslot-item"><span class="blue-number">7</span> - 00:00 - 02:59</li>
+                <li class="timeslot-item"><span class="blue-number">8</span> - 03:00 - 05:59</li>
             </ul>
         </div>
     </div>
 
     <script>
-        const timeslots = [
-            { id: 1, startMinutes: 360, endMinutes: 539 },
-            { id: 2, startMinutes: 540, endMinutes: 719 },
-            { id: 3, startMinutes: 720, endMinutes: 899 },
-            { id: 4, startMinutes: 900, endMinutes: 1079 },
-            { id: 5, startMinutes: 1080, endMinutes: 1259 },
-            { id: 6, startMinutes: 1260, endMinutes: 1439 },
-            { id: 7, startMinutes: 0, endMinutes: 179 },
-            { id: 8, startMinutes: 180, endMinutes: 359 },
-        ];
-
-        function pad(num) {
-            return num < 10 ? '0' + num : num;
-        }
-
-        function updateTime() {
-            const now = new Date();
-            const utcHours = now.getUTCHours();
-            const utcMinutes = now.getUTCMinutes();
-            const utcSeconds = now.getUTCSeconds();
-            const totalUtcMinutes = utcHours * 60 + utcMinutes;
-
-            document.getElementById('current-time-utc').textContent = `${pad(utcHours)}:${pad(utcMinutes)}:${pad(utcSeconds)}`;
-
-            let currentTimeslot = null;
-            let nextTimeslotIndex = 0;
-            
-            for (let i = 0; i < timeslots.length; i++) {
-                const slot = timeslots[i];
-                if (slot.id === 7 || slot.id === 8) {
-                    if (totalUtcMinutes >= slot.startMinutes || totalUtcMinutes <= slot.endMinutes) {
-                        currentTimeslot = slot;
-                        nextTimeslotIndex = (i + 1) % timeslots.length;
-                        break;
-                    }
-                } else {
-                    if (totalUtcMinutes >= slot.startMinutes && totalUtcMinutes <= slot.endMinutes) {
-                        currentTimeslot = slot;
-                        nextTimeslotIndex = (i + 1) % timeslots.length;
-                        break;
-                    }
-                }
-            }
-            
-            if (!currentTimeslot) {
-                if (totalUtcMinutes >= timeslots[6].startMinutes && totalUtcMinutes <= timeslots[6].endMinutes) {
-                    currentTimeslot = timeslots[6];
-                    nextTimeslotIndex = 7;
-                } else if (totalUtcMinutes >= timeslots[7].startMinutes && totalUtcMinutes <= timeslots[7].endMinutes) {
-                    currentTimeslot = timeslots[7];
-                    nextTimeslotIndex = 0;
-                }
-            }
-
-            let timeUntilNext = 0;
-            if (currentTimeslot) {
-                const nextTimeslot = timeslots[nextTimeslotIndex];
-                if (currentTimeslot.id === 6) {
-                    timeUntilNext = (1440 - totalUtcMinutes) * 60 - utcSeconds;
-                } else {
-                    timeUntilNext = (nextTimeslot.startMinutes - totalUtcMinutes) * 60 - utcSeconds;
-                }
-                
-                if (timeUntilNext < 0) {
-                    timeUntilNext = 0;
-                }
-            }
-
-            const remainingHours = Math.floor(timeUntilNext / 3600);
-            const remainingMinutes = Math.floor((timeUntilNext % 3600) / 60);
-            const remainingSeconds = Math.floor(timeUntilNext % 60);
-            document.getElementById('time-until-next').textContent = `${pad(remainingHours)}:${pad(remainingMinutes)}:${pad(remainingSeconds)}`;
-            
-            if (currentTimeslot) {
-                const nextTimeslot = timeslots[nextTimeslotIndex];
-                document.getElementById('current-timeslot').textContent = currentTimeslot.id;
-                document.getElementById('next-timeslot').textContent = nextTimeslot.id;
-                document.getElementById('current-time-window').textContent = `${pad(Math.floor(currentTimeslot.startMinutes / 60))}:${pad(currentTimeslot.startMinutes % 60)} - ${pad(Math.floor(currentTimeslot.endMinutes / 60))}:${pad(currentTimeslot.endMinutes % 60)}`;
-                document.getElementById('next-time-window').textContent = `${pad(Math.floor(nextTimeslot.startMinutes / 60))}:${pad(nextTimeslot.startMinutes % 60)} - ${pad(Math.floor(nextTimeslot.endMinutes / 60))}:${pad(nextTimeslot.endMinutes % 60)}`;
-            }
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
+        const timeslots=[{id:7,startMinutes:0,endMinutes:179},{id:8,startMinutes:180,endMinutes:359},{id:1,startMinutes:360,endMinutes:539},{id:2,startMinutes:540,endMinutes:719},{id:3,startMinutes:720,endMinutes:899},{id:4,startMinutes:900,endMinutes:1079},{id:5,startMinutes:1080,endMinutes:1259},{id:6,startMinutes:1260,endMinutes:1439}];
+        function pad(num){return num<10?'0'+num:num}
+        function updateTime(){const e=new Date,t=e.getUTCHours(),n=e.getUTCMinutes(),o=e.getUTCSeconds(),i=60*t+n;document.getElementById("current-time-utc").textContent=`${pad(t)}:${pad(n)}:${pad(o)}`;let s=null,d=-1;for(let c=0;c<timeslots.length;c++){const l=timeslots[c];if(i>=l.startMinutes&&i<=l.endMinutes){s=l;d=c;break}}
+        if(s){const a=(d+1)%timeslots.length,u=timeslots[a];document.getElementById("current-timeslot").textContent=s.id,document.getElementById("next-timeslot").textContent=u.id;const m=e=>{const t=pad(Math.floor(e.startMinutes/60)),n=pad(e.startMinutes%60),o=pad(Math.floor(e.endMinutes/60)),i=pad(e.endMinutes%60);return`${t}:${n} - ${o}:${i}`};document.getElementById("current-time-window").textContent=m(s),document.getElementById("next-time-window").textContent=m(u);const g=3600*t+60*n+o,r=60*u.startMinutes;let p=r>g?r-g:86400-g+r;const f=Math.floor(p/3600),w=Math.floor(p%3600/60),y=Math.floor(p%60);document.getElementById("time-until-next").textContent=`${pad(f)}:${pad(w)}:${pad(y)}`}else document.getElementById("current-timeslot").textContent="N/A"}
+        updateTime(),setInterval(updateTime,1000);
     </script>
 </body>
 </html>
