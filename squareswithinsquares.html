@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<input id="n" type="number" value="0">
+<button onclick="run()">Next</button>
+<div id="out"></div>
+
+<script>
+function isSquareConcat(s) {
+  if (!/^\d+$/.test(s)) return false;
+  const n = s.length;
+  const dp = Array(n+1).fill(false);
+  dp[0] = true;
+
+  const squares = [];
+  for (let i = 0; i*i <= 10**n; i++) squares.push(String(i*i));
+
+  for (let i = 0; i < n; i++) {
+    if (!dp[i]) continue;
+    for (const sq of squares) {
+      const len = sq.length;
+      if (i + len <= n && s.slice(i, i+len) === sq) dp[i+len] = true;
+    }
+  }
+  return dp[n];
+}
+
+function run() {
+  let x = Number(document.getElementById("n").value) + 1;
+  for (;;) {
+    if (isSquareConcat(String(x))) {
+      document.getElementById("out").textContent = x;
+      return;
+    }
+    x++;
+  }
+}
+</script>
+
+</body>
+</html>
