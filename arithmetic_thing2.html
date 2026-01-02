@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,6 +51,19 @@
             text-align: center;
             color: white;
             background-color: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        button:hover {
+            border-color: #333;
+        }
+        #restart-top-left {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            margin: 0;
+            display: none;
+            z-index: 1000;
         }
         #resultsContainer h2 {
             font-size: 3.5em;
@@ -80,7 +92,6 @@
             font-size: 0.9em;
             color: #999999;
         }
-        
         @media (max-width: 768px) {
             #question-area, #resultsContainer h2 {
                 font-size: 2.3em;
@@ -94,6 +105,8 @@
     </style>
 </head>
 <body>
+    <button id="restart-top-left" onclick="startQuiz()">↻</button>
+
     <div id="question-area">
         <p style="color:#999999; font-size:0.75em;">
             arithmetic thing
@@ -126,6 +139,7 @@
     const questionsLeftEl = document.getElementById('questionsLeft');
     const startButton = document.getElementById('startButton');
     const resultsContainer = document.getElementById('resultsContainer');
+    const restartTopLeft = document.getElementById('restart-top-left');
     const bodyEl = document.body;
 
     function getRandomNumber(min, max) {
@@ -176,6 +190,8 @@
         answerEl.focus();
         startButton.innerText = "→";
         startButton.style.display = 'none';
+        
+        restartTopLeft.style.display = 'block';
 
         startTime = performance.now();
         generateQuestion();
@@ -212,6 +228,8 @@
         answerEl.disabled = true;
         startButton.innerText = "↻";
         questionsLeftEl.innerText = "0";
+        
+        restartTopLeft.style.display = 'none';
 
         const rect = questionsLeftEl.getBoundingClientRect();
         const origin = {
@@ -239,11 +257,30 @@
         });
         resultsHTML += '</tbody></table>';
         
+        resultsHTML += `<button id="copyBtn" onclick="copyResults()">Copy Times</button>`;
+        
         resultsContainer.innerHTML = resultsHTML;
         startButton.style.display = 'block';
 
         resultsContainer.prepend(startButton);
         resultsContainer.prepend(inputWrapper);
+    }
+
+    function copyResults() {
+        const textToCopy = answeredQuestions
+            .map(q => `${q.question} = ${q.time.toFixed(2)}s`)
+            .join('\n');
+            
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(() => {
+                btn.innerText = originalText;
+            }, 1500);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
     }
 
     answerEl.addEventListener('input', () => {
@@ -263,12 +300,10 @@
     });
     
     document.addEventListener('keydown', (event) => {
-    if (!quizActive && event.key === 'Enter') {
-        startQuiz();
-    }
-});
-
-
+        if (!quizActive && event.key === 'Enter') {
+            startQuiz();
+        }
+    });
     </script>
 </body>
 </html>
