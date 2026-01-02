@@ -132,6 +132,7 @@
     let startTime;
     let questionStartTime;
     let answeredQuestions = [];
+    let finalTotalTime = 0;
 
     const questionAreaEl = document.getElementById('question-area');
     const inputWrapper = document.getElementById('input-wrapper');
@@ -223,7 +224,7 @@
     function endQuiz() {
         quizActive = false;
         const endTime = performance.now();
-        const totalTime = (endTime - startTime) / 1000;
+        finalTotalTime = (endTime - startTime) / 1000;
 
         answerEl.disabled = true;
         startButton.innerText = "↻";
@@ -244,7 +245,7 @@
         answeredQuestions.sort((a, b) => b.time - a.time);
 
         let resultsHTML = `
-            <h2>${totalTime.toFixed(2)}s</h2>
+            <h2>${finalTotalTime.toFixed(2)}s</h2>
             <p class="subtitle">${targetQuestions} questions</p>
             <table id="resultsTable">
                 <thead>
@@ -266,11 +267,14 @@
         resultsContainer.prepend(inputWrapper);
     }
 
-        function copyResults() {
-        const textToCopy = answeredQuestions
+    function copyResults() {
+        const header = `${finalTotalTime.toFixed(2)}s\n${targetQuestions} questions\n\n`;
+        const details = answeredQuestions
             .map(q => `${q.question}    ${q.time.toFixed(2)}s`)
             .join('\n');
             
+        const textToCopy = header + details;
+
         navigator.clipboard.writeText(textToCopy).then(() => {
             const btn = document.getElementById('copyBtn');
             const originalText = btn.innerText;
@@ -282,7 +286,6 @@
             console.error('Failed to copy: ', err);
         });
     }
-
 
     answerEl.addEventListener('input', () => {
         if (quizActive) {
