@@ -266,9 +266,9 @@
         resultsContainer.prepend(inputWrapper);
     }
 
-    function copyResults() {
+        function copyResults() {
         const textToCopy = answeredQuestions
-            .map(q => `${q.question} = ${q.time.toFixed(2)}s`)
+            .map(q => `${q.question}    ${q.time.toFixed(2)}s`)
             .join('\n');
             
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -282,6 +282,7 @@
             console.error('Failed to copy: ', err);
         });
     }
+
 
     answerEl.addEventListener('input', () => {
         if (quizActive) {
