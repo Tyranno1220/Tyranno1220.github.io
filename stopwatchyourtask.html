@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>do your TASKS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; z-index: 10; }
+        .header-title { font-size: 14px; font-weight: 600; color: #888; letter-spacing: 1px; }
+        .hamburger { width: 28px; height: 20px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; padding: 2px; z-index: 15; }
+        .hamburger span { display: block; height: 2px; background: #e0e0e0; border-radius: 2px; transition: all 0.3s; }
+        .main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; position: relative; }
+        .define-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 600px; animation: fadeIn 0.3s ease; }
+        .define-screen.active { display: flex; }
+        .define-title { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 40px; color: #fff; letter-spacing: 2px; line-height: 1.3; }
+        .input-wrapper { display: flex; width: 100%; gap: 10px; margin-bottom: 12px; }
+        .task-input { flex: 1; padding: 16px 20px; font-size: 18px; background: #1a1a1a; border: 2px solid #333; border-radius: 12px; color: #fff; outline: none; transition: border-color 0.3s; }
+        .task-input:focus { border-color: #4a9eff; }
+        .submit-btn { padding: 16px 24px; font-size: 16px; font-weight: 600; background: #4a9eff; color: #fff; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .submit-btn:hover { background: #3a8eef; transform: translateY(-1px); }
+        .submit-btn:active { transform: translateY(0); }
+        .target-time-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 30px; width: 100%; max-width: 320px; }
+        .target-time-label { font-size: 12px; color: #555; margin-right: 4px; white-space: nowrap; }
+        .target-time-input { width: 70px; padding: 10px 12px; font-size: 16px; background: #1a1a1a; border: 2px solid #333; border-radius: 8px; color: #fff; outline: none; text-align: center; font-variant-numeric: tabular-nums; }
+        .target-time-input:focus { border-color: #4a9eff; }
+        .target-time-separator { font-size: 18px; color: #555; font-weight: 700; }
+        .target-time-hint { font-size: 11px; color: #444; margin-left: 4px; }
+        .stopwatch { font-size: 48px; font-weight: 300; font-variant-numeric: tabular-nums; color: #888; font-family: 'Courier New', monospace; letter-spacing: 2px; transition: color 0.5s; }
+        .stopwatch-label { font-size: 12px; color: #555; margin-top: 8px; text-transform: uppercase; letter-spacing: 2px; }
+        .target-display { font-size: 14px; color: #666; margin-top: 4px; font-variant-numeric: tabular-nums; font-family: 'Courier New', monospace; }
+        .task-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 600px; animation: fadeIn 0.3s ease; }
+        .task-screen.active { display: flex; }
+        .task-name-display { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 6px; color: #fff; padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: background 0.2s; max-width: 100%; word-break: break-word; }
+        .task-name-display:hover { background: rgba(255,255,255,0.05); }
+        .task-name-display.editing { background: #1a1a1a; border: 2px solid #4a9eff; outline: none; }
+        .task-hint { font-size: 12px; color: #555; margin-bottom: 30px; }
+        .done-btn { width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, #00c853, #00a344); color: #fff; font-size: 32px; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 10px 40px rgba(0, 200, 83, 0.3); transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px; }
+        .done-btn:hover { transform: scale(1.05); box-shadow: 0 15px 50px rgba(0, 200, 83, 0.4); }
+        .done-btn:active { transform: scale(0.95); }
+        .pause-btn { margin-top: 20px; padding: 10px 24px; font-size: 14px; font-weight: 600; background: #2a2a2a; color: #888; border: 2px solid #3a3a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .pause-btn:hover { background: #333; color: #fff; border-color: #4a9eff; }
+        .give-up { margin-top: 12px; font-size: 13px; color: #555; cursor: pointer; text-decoration: none; transition: color 0.3s; padding: 8px 16px; border-radius: 6px; }
+        .give-up:hover { color: #ff5252; background: rgba(255, 82, 82, 0.1); }
+        .break-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 600px; animation: fadeIn 0.3s ease; }
+        .break-screen.active { display: flex; }
+        .break-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #ffab40; }
+        .break-subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
+        .break-stopwatch { font-size: 48px; font-weight: 300; font-variant-numeric: tabular-nums; color: #ffab40; font-family: 'Courier New', monospace; letter-spacing: 2px; }
+        .break-done-btn { margin-top: 30px; padding: 14px 40px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #ffab40, #ff9100); color: #fff; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 30px rgba(255, 171, 64, 0.3); }
+        .break-done-btn:hover { transform: scale(1.05); box-shadow: 0 12px 40px rgba(255, 171, 64, 0.4); }
+        .break-warn { margin-top: 16px; font-size: 14px; color: #ff5252; opacity: 0; transition: opacity 0.5s; font-style: italic; text-align: center; padding: 0 20px; }
+        .break-warn.visible { opacity: 1; }
+        .giveup-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 500px; animation: fadeIn 0.3s ease; padding: 20px; }
+        .giveup-screen.active { display: flex; }
+        .giveup-message { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 10px; color: #ff5252; }
+        .giveup-subtitle { font-size: 16px; color: #888; margin-bottom: 30px; text-align: center; }
+        .giveup-input { width: 100%; padding: 16px 20px; font-size: 16px; background: #1a1a1a; border: 2px solid #333; border-radius: 12px; color: #fff; outline: none; margin-bottom: 20px; }
+        .giveup-input:focus { border-color: #ff5252; }
+        .giveup-buttons { display: flex; gap: 12px; width: 100%; }
+        .giveup-submit { flex: 1; padding: 14px; font-size: 16px; font-weight: 600; background: #ff5252; color: #fff; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+        .giveup-submit:hover { background: #e04545; }
+        .giveup-cancel { flex: 1; padding: 14px; font-size: 16px; font-weight: 600; background: #2a2a2a; color: #888; border: 2px solid #333; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+        .giveup-cancel:hover { background: #333; color: #fff; }
+        .drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .drawer-overlay.active { opacity: 1; visibility: visible; }
+        .drawer { position: fixed; top: 0; right: 0; width: 100%; max-width: 420px; height: 100vh; background: #141414; z-index: 101; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: -5px 0 30px rgba(0,0,0,0.5); }
+        .drawer.active { transform: translateX(0); }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
+        .drawer-home { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; transition: background 0.2s; }
+        .drawer-home:hover { background: rgba(255,255,255,0.1); }
+        .drawer-home svg { width: 20px; height: 20px; fill: #888; }
+        .drawer-title { font-size: 16px; font-weight: 700; color: #fff; }
+        .drawer-back { font-size: 14px; color: #4a9eff; cursor: pointer; padding: 6px 12px; border-radius: 6px; transition: background 0.2s; }
+        .drawer-back:hover { background: rgba(74, 158, 255, 0.1); }
+        .drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .drawer-subtitle { font-size: 13px; color: #666; margin-bottom: 20px; font-style: italic; }
+        .stats-box { background: #1a1a1a; border-radius: 12px; padding: 16px; margin-bottom: 24px; border: 1px solid #2a2a2a; }
+        .stats-title { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #888; }
+        .stat-value { color: #fff; font-weight: 600; font-family: 'Courier New', monospace; }
+        .copy-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; background: #2a2a2a; color: #ccc; border: 1px solid #3a3a3a; border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 24px; transition: all 0.2s; }
+        .copy-btn:hover { background: #333; border-color: #4a9eff; color: #fff; }
+        .copy-btn.copied { background: #00c853; color: #fff; border-color: #00c853; }
+        .entries-list { list-style: none; }
+        .entry-item { padding: 14px 0; border-bottom: 1px solid #222; font-size: 14px; line-height: 1.6; color: #ccc; }
+        .entry-item:last-child { border-bottom: none; }
+        .entry-emoji { margin-right: 4px; }
+        .entry-duration { font-weight: 700; font-family: 'Courier New', monospace; }
+        .entry-duration.ontime { color: #00c853; }
+        .entry-duration.overtime { color: #ff5252; }
+        .entry-duration.define { color: #4a9eff; }
+        .entry-time { color: #666; font-size: 12px; }
+        .entry-label { color: #aaa; }
+        .entry-giveup .entry-label { text-decoration: line-through; color: #666; }
+        .entry-reason { font-size: 12px; color: #ff5252; margin-top: 4px; font-style: italic; }
+        .entry-break { font-size: 12px; color: #ffab40; margin-top: 2px; }
+        .entry-sessions { font-size: 11px; color: #4a9eff; margin-top: 2px; }
+        .clear-data-btn { margin-top: 30px; padding: 12px; width: 100%; background: transparent; color: #ff5252; border: 1px solid #ff5252; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .clear-data-btn:hover { background: rgba(255, 82, 82, 0.1); }
+        .empty-state { text-align: center; color: #555; font-size: 14px; padding: 40px 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .swipe-area-right { position: fixed; top: 0; right: 0; width: 20px; height: 100vh; z-index: 50; }
+        .swipe-area-left { position: fixed; top: 0; left: 0; width: 20px; height: 100vh; z-index: 102; display: none; }
+        .drawer.active ~ .swipe-area-left { display: block; }
+        @media (max-width: 480px) { .define-title { font-size: 22px; } .done-btn { width: 160px; height: 160px; font-size: 26px; } .stopwatch, .break-stopwatch { font-size: 36px; } .target-time-wrapper { flex-wrap: wrap; justify-content: center; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">TASK TIMER</div>
+        <div class="hamburger" id="hamburger" onclick="openDrawer()">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="define-screen active" id="defineScreen">
+            <div class="define-title">DEFINE YOUR NEXT TASK</div>
+            <div class="input-wrapper">
+                <input type="text" class="task-input" id="taskInput" placeholder="What are you working on?" autocomplete="off">
+                <button class="submit-btn" id="submitBtn" onclick="submitTask()">Submit</button>
+            </div>
+            <div class="target-time-wrapper">
+                <span class="target-time-label">Target:</span>
+                <input type="number" class="target-time-input" id="targetMin" placeholder="00" min="0">
+                <span class="target-time-separator">:</span>
+                <input type="number" class="target-time-input" id="targetSec" placeholder="00" min="0" max="59">
+                <span class="target-time-hint">mm:ss (optional)</span>
+            </div>
+            <div class="stopwatch" id="defineStopwatch">00:00</div>
+            <div class="stopwatch-label">time spent defining</div>
+        </div>
+        
+        <div class="task-screen" id="taskScreen">
+            <div class="task-name-display" id="taskNameDisplay" onclick="editTaskName()">Task Name</div>
+            <div class="task-hint">Tap to edit</div>
+            <div class="stopwatch" id="taskStopwatch">00:00</div>
+            <div class="target-display" id="targetDisplay"></div>
+            <div class="stopwatch-label">time on task</div>
+            <button class="done-btn" id="doneBtn" onclick="completeTask()">DONE</button>
+            <button class="pause-btn" id="pauseBtn" onclick="startBreak()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                Pause
+            </button>
+            <div class="give-up" id="giveUpBtn" onclick="initiateGiveUp()">give up</div>
+        </div>
+        
+        <div class="break-screen" id="breakScreen">
+            <div class="break-title">&#x2615; On break</div>
+            <div class="break-subtitle">Task timer is paused<br>Please get back to it soon and make sure not to procrastinate okay?</div>
+            <div class="break-stopwatch" id="breakStopwatch">00:00</div>
+            <div class="stopwatch-label">break duration</div>
+            <button class="break-done-btn" id="resumeBtn" onclick="endBreak()">Resume Task</button>
+            <div class="break-warn" id="breakWarn">You are taking a while, are you distracted?</div>
+        </div>
+        
+        <div class="giveup-screen" id="giveupScreen">
+            <div class="giveup-message" id="giveupMessage">You gave up...</div>
+            <div class="giveup-subtitle">Why did you give up?</div>
+            <input type="text" class="giveup-input" id="giveupInput" placeholder="Tell me why..." autocomplete="off">
+            <div class="giveup-buttons">
+                <button class="giveup-submit" id="giveupSubmit" onclick="confirmGiveUp()">Log & Continue</button>
+                <button class="giveup-cancel" id="giveupCancel" onclick="cancelGiveUp()">Never mind</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div class="drawer-home" onclick="closeDrawer()">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <div class="drawer-title">Time Entries</div>
+            <div class="drawer-back" onclick="closeDrawer()">Back</div>
+        </div>
+        <div class="drawer-content">
+            <div class="drawer-subtitle">Yes, I am watching you very closely.</div>
+            <div class="stats-box" id="statsBox">
+                <div class="stats-title">Session Stats</div>
+                <div class="stat-row"><span class="stat-label">Tasks Completed</span><span class="stat-value" id="statCompleted">0</span></div>
+                <div class="stat-row"><span class="stat-label">Time on Tasks</span><span class="stat-value" id="statTaskTime">00:00</span></div>
+                <div class="stat-row"><span class="stat-label">Total Elapsed</span><span class="stat-value" id="statTotal">00:00</span></div>
+            </div>
+            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy to clipboard
+            </button>
+            <ul class="entries-list" id="entriesList"></ul>
+            <button class="clear-data-btn" id="clearBtn" onclick="clearAllData()">Clear all data</button>
+        </div>
+    </div>
+    
+    <div class="swipe-area-right" id="swipeAreaRight"></div>
+    <div class="swipe-area-left" id="swipeAreaLeft"></div>
+
+    <script>
+        // ============================================
+        // STATE
+        // ============================================
+        var entries = [];
+        var currentScreen = 'define';
+        var currentTaskName = '';
+        var currentTaskTargetMs = 0;
+        var defineStartTime = null;
+        var taskStartTime = null;
+        var breakStartTime = null;
+        var defineTimerInterval = null;
+        var taskTimerInterval = null;
+        var breakTimerInterval = null;
+        var breakWarnTimeout = null;
+        var totalTaskTimeBeforeBreak = 0;
+        var breakCount = 0;
+        
+        // ============================================
+        // DOM REFERENCES
+        // ============================================
+        var defineScreen = document.getElementById('defineScreen');
+        var taskScreen = document.getElementById('taskScreen');
+        var breakScreen = document.getElementById('breakScreen');
+        var giveupScreen = document.getElementById('giveupScreen');
+        var taskInput = document.getElementById('taskInput');
+        var targetMin = document.getElementById('targetMin');
+        var targetSec = document.getElementById('targetSec');
+        var taskNameDisplay = document.getElementById('taskNameDisplay');
+        var defineStopwatch = document.getElementById('defineStopwatch');
+        var taskStopwatch = document.getElementById('taskStopwatch');
+        var targetDisplay = document.getElementById('targetDisplay');
+        var breakStopwatch = document.getElementById('breakStopwatch');
+        var breakWarn = document.getElementById('breakWarn');
+        var drawer = document.getElementById('drawer');
+        var drawerOverlay = document.getElementById('drawerOverlay');
+        var entriesList = document.getElementById('entriesList');
+        var giveupMessage = document.getElementById('giveupMessage');
+        var giveupInput = document.getElementById('giveupInput');
+        var copyBtn = document.getElementById('copyBtn');
+        var statCompleted = document.getElementById('statCompleted');
+        var statTaskTime = document.getElementById('statTaskTime');
+        var statTotal = document.getElementById('statTotal');
+        
+        // ============================================
+        // SAFE LOCALSTORAGE
+        // ============================================
+        function safeGet(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+        function safeSet(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+        }
+        function safeRemove(key) {
+            try { localStorage.removeItem(key); } catch (e) {}
+        }
+        
+        // ============================================
+        // DATA PERSISTENCE
+        // ============================================
+        function loadEntries() {
+            var saved = safeGet('taskTimerEntries');
+            if (saved) {
+                try {
+                    entries = JSON.parse(saved);
+                    if (!Array.isArray(entries)) entries = [];
+                } catch (e) { entries = []; }
+            }
+        }
+        function saveEntries() {
+            safeSet('taskTimerEntries', JSON.stringify(entries));
+        }
+        function saveAppState() {
+            var state = {
+                currentScreen: currentScreen,
+                currentTaskName: currentTaskName,
+                currentTaskTargetMs: currentTaskTargetMs,
+                taskStartTime: taskStartTime,
+                breakStartTime: breakStartTime,
+                totalTaskTimeBeforeBreak: totalTaskTimeBeforeBreak,
+                breakCount: breakCount
+            };
+            safeSet('taskTimerState', JSON.stringify(state));
+        }
+        function loadAppState() {
+            var saved = safeGet('taskTimerState');
+            if (!saved) return false;
+            try {
+                var state = JSON.parse(saved);
+                currentTaskName = state.currentTaskName || '';
+                currentTaskTargetMs = state.currentTaskTargetMs || 0;
+                totalTaskTimeBeforeBreak = state.totalTaskTimeBeforeBreak || 0;
+                breakCount = state.breakCount || 0;
+                
+                if (state.currentScreen === 'task' && state.taskStartTime) {
+                    taskStartTime = state.taskStartTime;
+                    showScreen('task');
+                    taskNameDisplay.textContent = currentTaskName;
+                    updateTargetDisplay();
+                    startTaskTimer();
+                    return true;
+                } else if (state.currentScreen === 'break' && state.breakStartTime && state.taskStartTime) {
+                    taskStartTime = state.taskStartTime;
+                    breakStartTime = state.breakStartTime;
+                    showScreen('break');
+                    startBreakTimer();
+                    return true;
+                } else if (state.currentScreen === 'giveup') {
+                    showScreen('define');
+                    startDefineTimer();
+                    return false;
+                } else {
+                    showScreen('define');
+                    startDefineTimer();
+                    return false;
+                }
+            } catch (e) {
+                return false;
+            }
+        }
+        function clearAppState() {
+            safeRemove('taskTimerState');
+        }
+        
+        // ============================================
+        // SCREEN MANAGEMENT
+        // ============================================
+        function showScreen(screenName) {
+            currentScreen = screenName;
+            defineScreen.classList.remove('active');
+            taskScreen.classList.remove('active');
+            breakScreen.classList.remove('active');
+            giveupScreen.classList.remove('active');
+            if (screenName === 'define') defineScreen.classList.add('active');
+            else if (screenName === 'task') taskScreen.classList.add('active');
+            else if (screenName === 'break') breakScreen.classList.add('active');
+            else if (screenName === 'giveup') giveupScreen.classList.add('active');
+        }
+        
+        // ============================================
+        // TIME FORMATTING
+        // ============================================
+        function formatDuration(ms) {
+            var totalSeconds = Math.floor(ms / 1000);
+            var minutes = Math.floor(totalSeconds / 60);
+            var seconds = totalSeconds % 60;
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+        function formatDurationLong(ms) {
+            var totalSeconds = Math.floor(ms / 1000);
+            var hours = Math.floor(totalSeconds / 3600);
+            var minutes = Math.floor((totalSeconds % 3600) / 60);
+            var seconds = totalSeconds % 60;
+            if (hours > 0) {
+                return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            }
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+        function formatTimestamp(date) {
+            var d = new Date(date);
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            var hh = String(d.getHours()).padStart(2, '0');
+            var min = String(d.getMinutes()).padStart(2, '0');
+            return yyyy + '-' + mm + '-' + dd + ', ' + hh + ':' + min;
+        }
+        
+        // ============================================
+        // COLOR HELPERS
+        // ============================================
+        function getProgressColor(elapsedMs, targetMs) {
+            if (!targetMs || targetMs <= 0) return '#888';
+            var ratio = elapsedMs / targetMs;
+            if (ratio < 0.5) {
+                var t = ratio * 2;
+                var r = Math.round(t * 255);
+                var g = Math.round(200 + t * 55);
+                return 'rgb(' + r + ', ' + g + ', 0)';
+            } else if (ratio < 0.75) {
+                var t = (ratio - 0.5) * 4;
+                var g = Math.round(255 - t * 100);
+                return 'rgb(255, ' + g + ', 0)';
+            } else if (ratio < 1.0) {
+                var t = (ratio - 0.75) * 4;
+                var g = Math.round(155 - t * 155);
+                return 'rgb(255, ' + g + ', 0)';
+            } else {
+                return '#ff5252';
+            }
+        }
+        
+        // ============================================
+        // TIMER FUNCTIONS
+        // ============================================
+        function startDefineTimer() {
+            defineStartTime = Date.now();
+            if (defineTimerInterval) clearInterval(defineTimerInterval);
+            defineTimerInterval = setInterval(function() {
+                var elapsed = Date.now() - defineStartTime;
+                defineStopwatch.textContent = formatDuration(elapsed);
+            }, 1000);
+        }
+        function startTaskTimer() {
+            if (taskTimerInterval) clearInterval(taskTimerInterval);
+            var updateTimer = function() {
+                var baseTime = totalTaskTimeBeforeBreak;
+                var currentElapsed = Date.now() - taskStartTime;
+                var totalElapsed = baseTime + currentElapsed;
+                taskStopwatch.textContent = formatDuration(totalElapsed);
+                if (currentTaskTargetMs > 0) {
+                    var color = getProgressColor(totalElapsed, currentTaskTargetMs);
+                    taskStopwatch.style.color = color;
+                }
+            };
+            updateTimer();
+            taskTimerInterval = setInterval(updateTimer, 1000);
+        }
+        function startBreakTimer() {
+            breakWarn.classList.remove('visible');
+            if (breakWarnTimeout) clearTimeout(breakWarnTimeout);
+            breakWarnTimeout = setTimeout(function() {
+                breakWarn.classList.add('visible');
+            }, 5 * 60 * 1000);
+            if (breakTimerInterval) clearInterval(breakTimerInterval);
+            breakTimerInterval = setInterval(function() {
+                var elapsed = Date.now() - breakStartTime;
+                breakStopwatch.textContent = formatDuration(elapsed);
+            }, 1000);
+        }
+        function stopDefineTimer() {
+            clearInterval(defineTimerInterval);
+            defineTimerInterval = null;
+            var elapsed = Date.now() - defineStartTime;
+            defineStopwatch.textContent = formatDuration(elapsed);
+            return { duration: elapsed, startTime: defineStartTime };
+        }
+        function stopTaskTimer() {
+            clearInterval(taskTimerInterval);
+            taskTimerInterval = null;
+            var currentElapsed = Date.now() - taskStartTime;
+            var totalElapsed = totalTaskTimeBeforeBreak + currentElapsed;
+            taskStopwatch.textContent = formatDuration(totalElapsed);
+            return { duration: totalElapsed, startTime: taskStartTime, currentElapsed: currentElapsed };
+        }
+        function stopBreakTimer() {
+            clearInterval(breakTimerInterval);
+            breakTimerInterval = null;
+            if (breakWarnTimeout) clearTimeout(breakWarnTimeout);
+            breakWarnTimeout = null;
+            breakWarn.classList.remove('visible');
+            var elapsed = Date.now() - breakStartTime;
+            breakStopwatch.textContent = formatDuration(elapsed);
+            return { duration: elapsed, startTime: breakStartTime };
+        }
+        
+        // ============================================
+        // UI UPDATES
+        // ============================================
+        function updateTargetDisplay() {
+            if (currentTaskTargetMs > 0) {
+                targetDisplay.textContent = '/' + formatDurationLong(currentTaskTargetMs);
+            } else {
+                targetDisplay.textContent = '';
+            }
+        }
+        
+        // ============================================
+        // TASK ACTIONS
+        // ============================================
+        function submitTask() {
+            var name = taskInput.value.trim();
+            if (!name) {
+                taskInput.focus();
+                return;
+            }
+            var minVal = parseInt(targetMin.value) || 0;
+            var secVal = parseInt(targetSec.value) || 0;
+            currentTaskTargetMs = (minVal * 60 + secVal) * 1000;
+            
+            var defineData = stopDefineTimer();
+            entries.push({
+                type: 'define',
+                label: 'defining a new task',
+                duration: defineData.duration,
+                startTime: defineData.startTime,
+                taskName: name
+            });
+            saveEntries();
+            
+            currentTaskName = name;
+            taskNameDisplay.textContent = name;
+            taskInput.value = '';
+            targetMin.value = '';
+            targetSec.value = '';
+            
+            showScreen('task');
+            totalTaskTimeBeforeBreak = 0;
+            breakCount = 0;
+            taskStopwatch.style.color = '#888';
+            updateTargetDisplay();
+            
+            taskStartTime = Date.now();
+            startTaskTimer();
+            saveAppState();
+        }
+        function completeTask() {
+            var taskData = stopTaskTimer();
+            var isOnTime = currentTaskTargetMs > 0 && taskData.duration <= currentTaskTargetMs;
+            
+            entries.push({
+                type: 'task',
+                label: currentTaskName,
+                duration: taskData.duration,
+                startTime: taskData.startTime,
+                targetMs: currentTaskTargetMs,
+                onTime: isOnTime,
+                sessions: breakCount + 1
+            });
+            saveEntries();
+            clearAppState();
+            
+            showScreen('define');
+            defineStopwatch.textContent = '00:00';
+            startDefineTimer();
+        }
+        function startBreak() {
+            var currentElapsed = Date.now() - taskStartTime;
+            totalTaskTimeBeforeBreak += currentElapsed;
+            breakCount++;
+            stopTaskTimer();
+            showScreen('break');
+            breakStartTime = Date.now();
+            startBreakTimer();
+            saveAppState();
+        }
+        function endBreak() {
+            var breakData = stopBreakTimer();
+            entries.push({
+                type: 'break',
+                label: 'break #' + breakCount,
+                duration: breakData.duration,
+                startTime: breakData.startTime,
+                taskName: currentTaskName
+            });
+            saveEntries();
+            showScreen('task');
+            taskStartTime = Date.now();
+            startTaskTimer();
+            saveAppState();
+        }
+        
+        // ============================================
+        // EDIT TASK NAME
+        // ============================================
+        function editTaskName() {
+            if (taskNameDisplay.contentEditable === 'true') return;
+            taskNameDisplay.contentEditable = 'true';
+            taskNameDisplay.classList.add('editing');
+            taskNameDisplay.focus();
+            var range = document.createRange();
+            range.selectNodeContents(taskNameDisplay);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            
+            function finishEdit() {
+                taskNameDisplay.contentEditable = 'false';
+                taskNameDisplay.classList.remove('editing');
+                var newName = taskNameDisplay.textContent.trim();
+                if (newName) {
+                    currentTaskName = newName;
+                } else {
+                    taskNameDisplay.textContent = currentTaskName;
+                }
+                taskNameDisplay.removeEventListener('blur', finishEdit);
+                taskNameDisplay.removeEventListener('keydown', handleKey);
+                saveAppState();
+            }
+            function handleKey(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    taskNameDisplay.blur();
+                }
+            }
+            taskNameDisplay.addEventListener('blur', finishEdit);
+            taskNameDisplay.addEventListener('keydown', handleKey);
+        }
+        
+        // ============================================
+        // GIVE UP FLOW
+        // ============================================
+        function initiateGiveUp() {
+            var currentElapsed = Date.now() - taskStartTime;
+            totalTaskTimeBeforeBreak += currentElapsed;
+            stopTaskTimer();
+            giveupMessage.textContent = 'You gave up on "' + currentTaskName + '"...';
+            giveupInput.value = '';
+            showScreen('giveup');
+            setTimeout(function() { giveupInput.focus(); }, 100);
+            saveAppState();
+        }
+        function confirmGiveUp() {
+            var reason = giveupInput.value.trim();
+            entries.push({
+                type: 'giveup',
+                label: currentTaskName,
+                duration: totalTaskTimeBeforeBreak,
+                startTime: taskStartTime,
+                reason: reason
+            });
+            saveEntries();
+            clearAppState();
+            showScreen('define');
+            defineStopwatch.textContent = '00:00';
+            startDefineTimer();
+        }
+        function cancelGiveUp() {
+            showScreen('task');
+            taskStartTime = Date.now();
+            startTaskTimer();
+            saveAppState();
+        }
+        
+        // ============================================
+        // DRAWER
+        // ============================================
+        function openDrawer() {
+            renderEntries();
+            drawer.classList.add('active');
+            drawerOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDrawer() {
+            drawer.classList.remove('active');
+            drawerOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // ============================================
+        // STATS & ENTRIES
+        // ============================================
+        function calculateStats() {
+            var completedCount = 0;
+            var totalTaskMs = 0;
+            var firstEntryTime = null;
+            for (var i = 0; i < entries.length; i++) {
+                var entry = entries[i];
+                if (entry.type === 'task') {
+                    completedCount++;
+                    totalTaskMs += entry.duration;
+                }
+                if (!firstEntryTime || entry.startTime < firstEntryTime) {
+                    firstEntryTime = entry.startTime;
+                }
+            }
+            var totalElapsedMs = firstEntryTime ? (Date.now() - firstEntryTime) : 0;
+            return { completedCount: completedCount, totalTaskMs: totalTaskMs, totalElapsedMs: totalElapsedMs };
+        }
+        function renderEntries() {
+            var stats = calculateStats();
+            statCompleted.textContent = stats.completedCount;
+            statTaskTime.textContent = formatDurationLong(stats.totalTaskMs);
+            statTotal.textContent = formatDurationLong(stats.totalElapsedMs);
+            
+            if (entries.length === 0) {
+                entriesList.innerHTML = '<div class="empty-state">No entries yet. Start timing!</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < entries.length; i++) {
+                var entry = entries[i];
+                var duration = formatDuration(entry.duration);
+                var time = formatTimestamp(entry.startTime);
+                var emoji = '';
+                var durationClass = '';
+                var extraInfo = '';
+                
+                if (entry.type === 'define') {
+                    emoji = '&#x270F;&#xFE0F;';
+                    durationClass = 'define';
+                } else if (entry.type === 'task') {
+                    emoji = '&#x1F4DD;';
+                    durationClass = entry.onTime ? 'ontime' : '';
+                    if (entry.sessions && entry.sessions > 1) {
+                        extraInfo = '<div class="entry-sessions">[' + entry.sessions + ' sessions]</div>';
+                    }
+                } else if (entry.type === 'giveup') {
+                    emoji = '&#x1F4DD;';
+                    durationClass = 'overtime';
+                    if (entry.reason) {
+                        extraInfo = '<div class="entry-reason">Reason: ' + escapeHtml(entry.reason) + '</div>';
+                    }
+                } else if (entry.type === 'break') {
+                    emoji = '&#x2615;';
+                    durationClass = '';
+                    if (entry.taskName) {
+                        extraInfo = '<div class="entry-break">Break from: ' + escapeHtml(entry.taskName) + '</div>';
+                    }
+                }
+                
+                var isGiveUp = entry.type === 'giveup';
+                html += '<li class="entry-item ' + (isGiveUp ? 'entry-giveup' : '') + '">' +
+                    '<span class="entry-emoji">' + emoji + '</span>' +
+                    '<span class="entry-duration ' + durationClass + '">' + duration + '</span>' +
+                    '<span class="entry-time">[' + time + ']</span> &mdash; ' +
+                    '<span class="entry-label">' + escapeHtml(entry.label) + '</span>' +
+                    extraInfo +
+                '</li>';
+            }
+            entriesList.innerHTML = html;
+        }
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ============================================
+        // COPY TO CLIPBOARD
+        // ============================================
+        function copyToClipboard() {
+            if (entries.length === 0) return;
+            var markdown = '# Time it took for you to do your tasks\n\n';
+            markdown += '*Yes, I am watching you very closely.*\n\n';
+            var stats = calculateStats();
+            markdown += '**Stats:** ' + stats.completedCount + ' tasks completed, ' + formatDurationLong(stats.totalTaskMs) + ' on tasks, ' + formatDurationLong(stats.totalElapsedMs) + ' total elapsed\n\n';
+            
+            for (var i = 0; i < entries.length; i++) {
+                var entry = entries[i];
+                var duration = formatDuration(entry.duration);
+                var time = formatTimestamp(entry.startTime);
+                var line = '';
+                
+                if (entry.type === 'giveup') {
+                    line = '- ~~' + duration + ' [' + time + '] — ' + entry.label + '~~';
+                    if (entry.reason) {
+                        line += ' *(gave up: ' + entry.reason + ')*';
+                    }
+                } else if (entry.type === 'break') {
+                    line = '- &#x2615; ' + duration + ' [' + time + '] — ' + entry.label;
+                    if (entry.taskName) {
+                        line += ' (from ' + entry.taskName + ')';
+                    }
+                } else if (entry.type === 'define') {
+                    line = '- &#x270F;&#xFE0F; ' + duration + ' [' + time + '] — ' + entry.label;
+                } else if (entry.type === 'task') {
+                    var onTimeMark = entry.onTime ? ' &#x2705;' : '';
+                    var sessions = entry.sessions > 1 ? ' [' + entry.sessions + ' sessions]' : '';
+                    line = '- &#x1F4DD; ' + duration + ' [' + time + '] — ' + entry.label + sessions + onTimeMark;
+                }
+                markdown += line + '\n';
+            }
+            
+            navigator.clipboard.writeText(markdown).then(function() {
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                setTimeout(function() {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy to clipboard';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Copy failed', err);
+                alert('Failed to copy. Please copy manually.');
+            });
+        }
+        
+        // ============================================
+        // CLEAR DATA
+        // ============================================
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete all time entries? This cannot be undone.')) {
+                entries = [];
+                saveEntries();
+                clearAppState();
+                renderEntries();
+            }
+        }
+        
+        // ============================================
+        // SWIPE HANDLING
+        // ============================================
+        var touchStartX = 0;
+        var touchEndX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+        function handleSwipe() {
+            var swipeThreshold = 80;
+            var diff = touchEndX - touchStartX;
+            if (diff < -swipeThreshold && touchStartX > window.innerWidth - 50 && !drawer.classList.contains('active')) {
+                openDrawer();
+            }
+            if (diff > swipeThreshold && drawer.classList.contains('active')) {
+                closeDrawer();
+            }
+        }
+        
+        // ============================================
+        // KEYBOARD SHORTCUTS
+        // ============================================
+        taskInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') submitTask();
+        });
+        giveupInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') confirmGiveUp();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && drawer.classList.contains('active')) {
+                closeDrawer();
+            }
+        });
+        
+        // ============================================
+        // PERIODIC STATE SAVE (more reliable than beforeunload)
+        // ============================================
+        setInterval(function() {
+            if (currentScreen === 'task' || currentScreen === 'break') {
+                saveAppState();
+            }
+        }, 5000);
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        loadEntries();
+        var resumed = loadAppState();
+        if (!resumed) {
+            showScreen('define');
+            startDefineTimer();
+        }
+    </script>
+</body>
+</html>'''
