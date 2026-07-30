@@ -1,0 +1,165 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⬜ → Numbers</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        textarea, input {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        textarea:focus, input:focus {
+            border-color: #676767;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="input-group">
+        <label for="emojiInput">⬜⬜⬜</label>
+        <textarea id="emojiInput" placeholder="e.g. ⬜▫️▫️▫️ or :white_large_square::white_small_square::white_small_square::white_small_square:"></textarea>
+    </div>
+
+    <div class="input-group">
+        <label for="numberInput">Numbers</label>
+        <input type="text" id="numberInput" placeholder="e.g. 484">
+    </div>
+</div>
+
+<script>
+    const MAPPINGS = [
+        { name: ":white_square_button:", emoji: "🔳", value: 4294967296 },
+        { name: ":black_square_button:", emoji: "🔲", value: 1073741824 },
+        { name: ":black_large_square:", emoji: "⬛", value: 268435456 },
+        { name: ":black_medium_square:", emoji: "◼️", value: 67108864 },
+        { name: ":black_medium_small_square:", emoji: "◾", value: 16777216 },
+        { name: ":black_small_square:", emoji: "▪️", value: 4194304 },
+        { name: ":brown_square:", emoji: "🟫", value: 1048576 },
+        { name: ":purple_square:", emoji: "🟪", value: 262144 },
+        { name: ":blue_square:", emoji: "🟦", value: 65536 },
+        { name: ":green_square:", emoji: "🟩", value: 16384 },
+        { name: ":yellow_square:", emoji: "🟨", value: 4096 },
+        { name: ":orange_square:", emoji: "🟧", value: 1024 },
+        { name: ":red_square:", emoji: "🟥", value: 256 },
+        { name: ":white_large_square:", emoji: "⬜", value: 64 },
+        { name: ":white_medium_square:", emoji: "◻️", value: 16 },
+        { name: ":white_medium_small_square:", emoji: "◽", value: 4 },
+        { name: ":white_small_square:", emoji: "▫️", value: 1 }
+    ];
+
+    const emojiInput = document.getElementById('emojiInput');
+    const numberInput = document.getElementById('numberInput');
+
+    let activeInput = null;
+
+    emojiInput.addEventListener('focus', () => activeInput = 'emoji');
+    numberInput.addEventListener('focus', () => activeInput = 'number');
+
+    emojiInput.addEventListener('input', () => {
+        if (activeInput !== 'emoji') return;
+        let text = emojiInput.value;
+        if (!text.trim()) {
+            numberInput.value = '';
+            return;
+        }
+
+        let total = 0;
+
+        MAPPINGS.forEach(item => {
+            const regex = new RegExp(item.name.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+            const matches = text.match(regex);
+            if (matches) {
+                total += matches.length * item.value;
+                text = text.replace(regex, '');
+            }
+        });
+
+        MAPPINGS.forEach(item => {
+            const regex = new RegExp(item.emoji.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+            const matches = text.match(regex);
+            if (matches) {
+                total += matches.length * item.value;
+                text = text.replace(regex, '');
+            }
+        });
+
+        numberInput.value = total;
+    });
+
+    numberInput.addEventListener('input', () => {
+        if (activeInput !== 'number') return;
+        let rawVal = numberInput.value.replace(/,/g, '').trim();
+        if (!rawVal || isNaN(rawVal)) {
+            emojiInput.value = '';
+            return;
+        }
+
+        let num = BigInt(rawVal);
+        if (num <= 0n) {
+            emojiInput.value = '';
+            return;
+        }
+
+        let result = '';
+        for (const item of MAPPINGS) {
+            const val = BigInt(item.value);
+            const count = num / val;
+            if (count > 0n) {
+                result += item.emoji.repeat(Number(count));
+                num %= val;
+            }
+        }
+
+        emojiInput.value = result;
+    });
+</script>
+
+</body>
+</html>
+
