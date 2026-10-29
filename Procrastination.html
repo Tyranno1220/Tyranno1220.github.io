@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procrastination</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: Consolas, "Courier New", monospace;
+}
+
+body {
+    background: #0d0d0e;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* Panel Containers */
+.panel {
+    background: #1d1d1f;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #2a2a2d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.fixedPanel {
+    height: 380px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbars */
+.fixedPanel::-webkit-scrollbar,
+.history::-webkit-scrollbar {
+    width: 8px;
+}
+.fixedPanel::-webkit-scrollbar-track,
+.history::-webkit-scrollbar-track {
+    background: #111;
+}
+.fixedPanel::-webkit-scrollbar-thumb,
+.history::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+/* Score Panel */
+.score {
+    text-align: center;
+    padding: 25px;
+    background: linear-gradient(180deg, #1d1d1f 0%, #151517 100%);
+}
+
+.score h1 {
+    font-size: 72px;
+    margin: 10px 0;
+    font-weight: bold;
+    color: #eee;
+}
+
+.highscore {
+    text-align: right;
+    color: #888;
+    font-size: 14px;
+}
+
+/* Layout Grid */
+.row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.column {
+    flex: 1;
+    min-width: 320px;
+}
+
+/* Inputs, Buttons, & Controls */
+input, textarea, button, select {
+    background: #111;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: #26b84a;
+    box-shadow: 0 0 5px rgba(38, 184, 74, 0.3);
+}
+
+textarea {
+    width: 100%;
+    height: 280px;
+    resize: none;
+    line-height: 1.5;
+}
+
+button {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+.green {
+    background: #26b84a;
+    border: none;
+    color: white;
+}
+
+.red {
+    background: #cf2525;
+    border: none;
+    color: white;
+}
+
+/* Task Card Styling */
+.task {
+    padding: 14px;
+    margin-bottom: 12px;
+    border-left: 6px solid #26b84a;
+    background: #111;
+    border-radius: 6px;
+}
+
+.neglectedTask {
+    border-left: 6px solid #666;
+    opacity: 0.85;
+}
+
+.taskName {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.small {
+    color: #aaa;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.overdue {
+    color: #ff5555;
+    font-weight: bold;
+}
+
+.history {
+    max-height: 280px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-size: 13px;
+    color: #ccc;
+    margin-top: 10px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* Dialog Modals for Import/Export/Alerts */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal {
+    background: #1d1d1f;
+    border: 1px solid #444;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.modal textarea {
+    height: 120px;
+    margin: 10px 0;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Score Panel -->
+    <div class="panel score">
+        <div style="color: #aaa; font-size: 14px;">YOUR COUNT</div>
+        <h1 id="score">0</h1>
+        <div class="highscore">
+            High score: <span id="highScore" style="color:#eee;">0</span> | 
+            Streak: <span id="streak" style="color:#eee;">0</span>
+        </div>
+    </div>
+
+    <!-- Task Input Section -->
+    <div style="display:flex; gap:10px; flex-wrap: wrap;">
+        <input
+            id="taskInput"
+            style="flex:1; min-width: 250px;"
+            placeholder="finish report 1h 30m hard"
+            onkeydown="if(event.key === 'Enter') createTask()"
+        />
+        <button
+            class="green"
+            onclick="createTask()"
+            style="min-width:180px; font-size:16px;">
+            + CREATE TASK
+        </button>
+    </div>
+
+    <!-- Task Preview -->
+    <div
+        id="taskPreview"
+        style="color:#888; margin-top:10px; margin-bottom:15px; font-size:13px; background:#111; padding:10px; border-radius:8px; border:1px solid #222;">
+    </div>
+
+    <!-- Sorting -->
+    <div style="margin-bottom: 15px; font-size: 14px;">
+        Sort:
+        <select id="sortMode" onchange="render()">
+            <option value="deadline">Nearest deadline</option>
+            <option value="name">Name</option>
+            <option value="created">Created</option>
+        </select>
+    </div>
+
+    <!-- Main Grid Top -->
+    <div class="row">
+        <!-- Active Tasks Column -->
+        <div class="column">
+            <div class="panel fixedPanel">
+                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">
+                    Active Tasks
+                    <span id="taskCount" style="float:right; color:#888;">0/3</span>
+                </h2>
+                <div id="tasks"></div>
+            </div>
+        </div>
+
+        <!-- History Log Column -->
+        <div class="column">
+            <div class="panel fixedPanel">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:10px;">
+                    <h2 style="margin:0; font-size:18px;">History</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button onclick="copyHistory()" style="padding: 5px 10px; font-size: 12px;">
+                            COPY LOG
+                        </button>
+                        <button id="clearHistoryBtn" onclick="clearHistory()" class="red" disabled style="padding: 5px 10px; font-size: 12px; opacity: 0.4; cursor: not-allowed;">
+                            CLEAR
+                        </button>
+                    </div>
+                </div>
+                <div id="history" class="history"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid Bottom -->
+    <div class="row">
+        <!-- Scratchpad Column -->
+        <div class="column">
+            <div class="panel fixedPanel">
+                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Scratchpad</h2>
+                <textarea id="scratchpad" placeholder="Type temporary notes or thoughts here..."></textarea>
+            </div>
+        </div>
+
+        <!-- Neglected Tasks Column -->
+        <div class="column">
+            <div class="panel fixedPanel">
+                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Neglected Tasks</h2>
+                <div id="neglected"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="footer">
+        <button onclick="openExportModal()">Export Save</button>
+        <button onclick="openImportModal()">Import Save</button>
+    </div>
+
+</div>
+
+<!-- Modal Dialogs -->
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+        <h3 id="modalTitle" style="margin-top:0;">Modal Title</h3>
+        <p id="modalDescription" style="font-size:13px; color:#aaa; margin-bottom:5px;"></p>
+        <textarea id="modalTextarea"></textarea>
+        <div class="modal-actions">
+            <button onclick="closeModal()">Close</button>
+            <button id="modalPrimaryBtn" class="green">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEY = "Psave";
+
+// State Initialization
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+
+if(!data) {
+    data = {
+        score: 0,
+        highScore: 0,
+        streak: 0,
+        tasks: [],
+        neglected: [],
+        history: [],
+        scratchpad: ""
+    };
+}
+
+// Attach listener for dynamic input preview
+document.getElementById("taskInput").addEventListener("input", updateTaskPreview);
+
+function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function updateScore(v) {
+    data.score += v;
+    if(data.score > data.highScore) {
+        data.highScore = data.score;
+    }
+    save();
+}
+
+function parseTask(text) {
+    let duration = 0;
+    let difficulty = "easy";
+    let type = "start";
+
+    let lower = text.toLowerCase();
+
+    if(lower.match(/\bhard\b/)) {
+        difficulty = "hard";
+    } else if(lower.match(/\bmedium\b/)) {
+        difficulty = "medium";
+    }
+
+    if(lower.match(/\bfinish\b|\bcomplete\b|\bdo\b/)) {
+        type = "finish";
+    }
+
+    // Match hours and minutes (e.g., 1h 30m, 2h, 45m)
+    const hMatch = text.match(/(\d+)\s*h/i);
+    const mMatch = text.match(/(\d+)\s*m/i);
+
+    if (hMatch) duration += parseInt(hMatch[1]) * 60;
+    if (mMatch) duration += parseInt(mMatch[1]);
+
+    if (duration === 0) duration = 2;
+
+    let name = text
+        .replace(/\d+\s*[mh]/gi, "")
+        .replace(/\b(start|begin|commence|finish|complete|do)\b/gi, "")
+        .replace(/\b(easy|medium|hard)\b/gi, "")
+        .trim();
+
+    if(!name) name = "unnamed task";
+
+    return { name, duration, difficulty, type };
+}
+
+function difficultyMultiplier(d) {
+    if(d === "medium") return 1.2;
+    if(d === "hard") return 1.5;
+    return 1;
+}
+
+function streakBonus() {
+    return Math.min(data.streak, 5);
+}
+
+function getBaseReward(type, duration) {
+    if (type === "start") return 2;
+    // Finish task nerfing: 10 points reserved for 25m+ sessions
+    if (duration < 25) {
+        return Math.max(1, Math.round(10 * (duration / 25)));
+    }
+    return 10;
+}
+
+function updateTaskPreview() {
+    const text = document.getElementById("taskInput").value;
+    
+    if(!text.trim()) {
+        document.getElementById("taskPreview").innerHTML = "Type a task above... (e.g., <i>'finish report 1h 30m hard'</i>)";
+        return;
+    }
+
+    const p = parseTask(text);
+    const icon = p.type === "finish" ? "✅" : "🚀";
+    const diff = p.difficulty === "hard" ? "Hard ★" : p.difficulty === "medium" ? "Medium ◆" : "Easy";
+    const base = getBaseReward(p.type, p.duration);
+    const reward = Math.round(base * difficultyMultiplier(p.difficulty));
+
+    document.getElementById("taskPreview").innerHTML = `
+        ${icon} <strong>${p.type.toUpperCase()}</strong> | Name: <em>${p.name}</em> | Duration: <strong>${p.duration}m</strong> | Difficulty: <strong>${diff}</strong> | Potential Reward: <strong style="color:#29d65f;">+${reward}</strong>
+    `;
+}
+
+function createTask() {
+    if(data.tasks.length >= 3) {
+        showNotice("Task Limit Reached", "Please finish or discard an existing task before adding a new one.");
+        return;
+    }
+
+    let input = document.getElementById("taskInput");
+    if(!input.value.trim()) return;
+
+    let p = parseTask(input.value);
+    let now = Date.now();
+
+    data.tasks.push({
+        id: crypto.randomUUID(),
+        created: now,
+        expiry: now + p.duration * 60000,
+        duration: p.duration,
+        name: p.name,
+        difficulty: p.difficulty,
+        type: p.type
+    });
+
+    input.value = "";
+    updateTaskPreview();
+    save();
+    render();
+}
+
+function getPotentialOutcome(task) {
+    const now = Date.now();
+
+    if (now > task.expiry) {
+        let late = Math.ceil((now - task.expiry) / 60000 / 2);
+        late = Math.min(late, 50);
+        late = Math.round(late * difficultyMultiplier(task.difficulty));
+        return { isPenalty: true, amount: late };
+    }
+
+    const remaining = task.expiry - now;
+    const total = task.expiry - task.created;
+    const percent = Math.max(0, (remaining / total) * 100);
+
+    let base = getBaseReward(task.type, task.duration);
+    let rewardPct = 1;
+
+    if (task.type === "start") {
+        rewardPct = percent >= 75 ? 1 : 0.5;
+    } else {
+        if (percent >= 90) rewardPct = 10;
+        else if (percent >= 75) rewardPct = 7;
+        else if (percent >= 50) rewardPct = 5;
+        else if (percent >= 25) rewardPct = 3;
+        else rewardPct = 1;
+        rewardPct = rewardPct / 10; // Normalized multiplier
+    }
+
+    let reward = Math.round(base * rewardPct * difficultyMultiplier(task.difficulty));
+    if (task.type !== "start") {
+        reward += streakBonus();
+    }
+
+    // Cap "start" task rewards strictly at +2
+    if (task.type === "start") {
+        reward = Math.min(2, reward);
+    }
+
+    return { isPenalty: false, amount: reward };
+}
+
+function completeTask(id) {
+    let task = data.tasks.find(x => x.id === id);
+    if(!task) return;
+
+    const outcome = getPotentialOutcome(task);
+
+    if(!outcome.isPenalty) {
+        data.streak++;
+        updateScore(outcome.amount);
+        data.history.unshift(
+            `✅ ${task.type === "finish" ? "Finished" : "Started"}: ${task.name} (+${outcome.amount})\n${formatTimestamp(Date.now())}`
+        );
+    } else {
+        data.streak = 0;
+        updateScore(-outcome.amount);
+        data.history.unshift(
+            `⚠️ Late Completion: ${task.name} (-${outcome.amount})\n${formatTimestamp(Date.now())}`
+        );
+    }
+
+    data.tasks = data.tasks.filter(x => x.id !== id);
+    save();
+    render();
+}
+
+function getDiscardPenalty(task) {
+    const now = Date.now();
+    let penalty = 0;
+
+    if (now > task.expiry) {
+        let overdueMins = Math.ceil((now - task.expiry) / 60000);
+        penalty = Math.min(100, Math.round(20 + (task.duration * 0.5) + (overdueMins * 0.5)));
+    } else {
+        penalty = Math.max(3, Math.round((task.duration / 5) * difficultyMultiplier(task.difficulty)));
+    }
+
+    return penalty;
+}
+
+function promptDiscardTask(id) {
+    let task = data.tasks.find(x => x.id === id);
+    if (!task) return;
+
+    let penalty = getDiscardPenalty(task);
+
+    document.getElementById("modalTitle").textContent = "Discard Task?";
+    document.getElementById("modalDescription").textContent = 
+        `Are you sure you want to discard "${task.name}"? It will cost -${penalty} points!`;
+    
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "none";
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "red";
+    btn.textContent = `Yes, Discard (-${penalty})`;
+    btn.onclick = () => {
+        discardTask(id, penalty);
+        closeModal();
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function discardTask(id, penalty) {
+    let task = data.tasks.find(x => x.id === id);
+    if (!task) return;
+
+    data.streak = 0;
+    updateScore(-penalty);
+
+    data.history.unshift(
+        `🗑️ Discarded: ${task.name} (-${penalty})\n${formatTimestamp(Date.now())}`
+    );
+
+    data.tasks = data.tasks.filter(x => x.id !== id);
+    save();
+    render();
+}
+
+function recoverNeglected(id) {
+    let task = data.neglected.find(x => x.id === id);
+    if(!task) return;
+
+    let overdueHours = (Date.now() - task.expiry) / 3600000;
+    let recovery = 0;
+
+    if(overdueHours < 48) recovery = 30;
+    else if(overdueHours < 72) recovery = 25;
+    else if(overdueHours < 96) recovery = 20;
+    else if(overdueHours < 120) recovery = 15;
+    else if(overdueHours < 144) recovery = 10;
+    else if(overdueHours < 168) recovery = 5;
+
+    updateScore(recovery);
+
+    data.history.unshift(
+        `🛟 Recovered ${task.name} (+${recovery})\n${formatTimestamp(Date.now())}`
+    );
+
+    data.neglected = data.neglected.filter(x => x.id !== id);
+    save();
+    render();
+}
+
+function checkNeglect() {
+    let now = Date.now();
+
+    for(let i = data.tasks.length - 1; i >= 0; i--) {
+        let task = data.tasks[i];
+        if(now - task.expiry >= 86400000) {
+            updateScore(-80);
+            data.streak = 0;
+            data.neglected.push(task);
+            data.tasks.splice(i, 1);
+        }
+    }
+    save();
+}
+
+function formatTimestamp(ts) {
+    return new Date(ts).toLocaleString();
+}
+
+function formatRemaining(task) {
+    let diff = task.expiry - Date.now();
+
+    if(diff <= 0) {
+        let mins = Math.floor(Math.abs(diff) / 60000);
+        return `<span class="overdue">${mins}m overdue</span>`;
+    }
+
+    let secs = Math.floor(diff / 1000);
+
+    if(secs <= 300) {
+        let m = Math.floor(secs / 60);
+        let s = secs % 60;
+        return `due in ${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    return `due in ${Math.floor(secs / 60)}m`;
+}
+
+function render() {
+    checkNeglect();
+
+    document.getElementById("score").textContent = data.score;
+    document.getElementById("highScore").textContent = data.highScore;
+    document.getElementById("streak").textContent = data.streak;
+
+    let tasks = [...data.tasks];
+    let sort = document.getElementById("sortMode").value;
+
+    if(sort === "deadline") {
+        tasks.sort((a, b) => a.expiry - b.expiry);
+    } else if(sort === "name") {
+        tasks.sort((a, b) => a.name.localeCompare(b.name));
+    } else if(sort === "created") {
+        tasks.sort((a, b) => a.created - b.created);
+    }
+
+    let taskHtml = "";
+
+    for(let t of tasks) {
+        const outcome = getPotentialOutcome(t);
+        const outcomeDisplay = outcome.isPenalty
+            ? `<span style="color:#ff5555;">Potential Penalty: -${outcome.amount}</span>`
+            : `<span style="color:#29d65f;">Potential Reward: +${outcome.amount}</span>`;
+
+        const actionLabel = t.type === "start" ? "🚀 I STARTED!" : "✅ COMPLETE";
+
+        taskHtml += `
+        <div class="task">
+            <div class="taskName">
+                ${t.type === "finish" ? "✅" : "🚀"} ${t.name}
+            </div>
+            <div style="font-size:15px; font-weight:bold; margin-top:4px;">
+                ${outcomeDisplay}
+            </div>
+            <div class="small">
+                ${formatRemaining(t)} | Difficulty: <strong>${t.difficulty}</strong> | Duration: <strong>${t.duration}m</strong><br>
+                Created: ${formatTimestamp(t.created)}<br>
+                Due: ${formatTimestamp(t.expiry)}
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button style="flex:1;" class="green" onclick="completeTask('${t.id}')">
+                    ${actionLabel}
+                </button>
+                <button class="red" style="padding:0 12px;" onclick="promptDiscardTask('${t.id}')" title="Discard task with penalty">
+                    🗑️ DISCARD
+                </button>
+            </div>
+        </div>`;
+    }
+
+    if(tasks.length === 0) {
+        taskHtml = `<div style="text-align:center; color:#666; padding-top:50px;">No active tasks.<br>Create one above!</div>`;
+    }
+
+    document.getElementById("tasks").innerHTML = taskHtml;
+    document.getElementById("taskCount").textContent = `${data.tasks.length}/3`;
+
+    let nHtml = "";
+
+    for(let t of data.neglected) {
+        nHtml += `
+        <div class="task neglectedTask">
+            <div class="taskName" style="font-size:16px; color:#ccc;">${t.name}</div>
+            <button style="margin-top:8px;" class="red" onclick="recoverNeglected('${t.id}')">
+                Recover Task
+            </button>
+        </div>`;
+    }
+
+    if(data.neglected.length === 0) {
+        document.getElementById("neglected").innerHTML = `
+        <div style="text-align:center; color:#666; padding-top:50px;">
+            Nothing here.<br><br>Keep it that way.
+        </div>`;
+    } else {
+        let header = `
+        <div style="color:#999; margin-bottom:12px; font-size:12px;">
+            Charged -80 counts each. Recover remaining points quickly before they fade.
+        </div>`;
+        document.getElementById("neglected").innerHTML = header + nHtml;
+    }
+
+    document.getElementById("history").textContent = data.history.slice(0, 100).join("\n\n");
+}
+
+// Scratchpad Autosave
+document.getElementById("scratchpad").value = data.scratchpad || "";
+document.getElementById("scratchpad").addEventListener("input", e => {
+    data.scratchpad = e.target.value;
+    save();
+});
+
+// Modal Logic
+function showNotice(title, desc) {
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalDescription").textContent = desc;
+    document.getElementById("modalTextarea").style.display = "none";
+    document.getElementById("modalPrimaryBtn").style.display = "none";
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openExportModal() {
+    document.getElementById("modalTitle").textContent = "Export Save Data";
+    document.getElementById("modalDescription").textContent = "Copy the save string below:";
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = encodeURIComponent(JSON.stringify(data));
+    txt.select();
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "none";
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openImportModal() {
+    document.getElementById("modalTitle").textContent = "Import Save Data";
+    document.getElementById("modalDescription").textContent = "Paste your save data string below:";
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = "";
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "Import Data";
+    btn.onclick = () => {
+        try {
+            if(!txt.value.trim()) return;
+            const inputVal = txt.value.trim();
+            let jsonStr;
+            try {
+                jsonStr = decodeURIComponent(inputVal);
+            } catch(err) {
+                jsonStr = atob(inputVal);
+            }
+            data = JSON.parse(jsonStr);
+            save();
+            render();
+            closeModal();
+        } catch(e) {
+            showNotice("Error", "Invalid save string provided.");
+        }
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").style.display = "none";
+}
+
+function copyHistory() {
+    const text = data.history.join("\n\n");
+    const dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = text;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (clearBtn) {
+        clearBtn.disabled = false;
+        clearBtn.style.opacity = "1";
+        clearBtn.style.cursor = "pointer";
+    }
+
+    showNotice("Copied", "History log copied to clipboard. You can now clear history if desired.");
+}
+
+function clearHistory() {
+    data.history = [];
+    save();
+    render();
+
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (clearBtn) {
+        clearBtn.disabled = true;
+        clearBtn.style.opacity = "0.4";
+        clearBtn.style.cursor = "not-allowed";
+    }
+
+    showNotice("Cleared", "History log has been cleared.");
+}
+
+// Initial Setup
+updateTaskPreview();
+render();
+setInterval(render, 1000);
+</script>
+
+</body>
+</html>
