@@ -6,6 +6,7 @@
 <title>Procrastination</title>
 
 <style>
+/* Reset & Base Styles */
 * {
     box-sizing: border-box;
     font-family: Consolas, "Courier New", monospace;
@@ -313,8 +314,11 @@ button:active {
 
     <!-- Footer Controls -->
     <div class="footer">
-        <button onclick="openExportModal()">Export Save</button>
-        <button onclick="openImportModal()">Import Save</button>
+        <div style="display:flex; gap:10px;">
+            <button onclick="openExportModal()">Export Save</button>
+            <button onclick="openImportModal()">Import Save</button>
+        </div>
+        <button class="green" onclick="generateShareableLink()">🔗 Shareable Sync Link</button>
     </div>
 
 </div>
@@ -333,10 +337,27 @@ button:active {
 </div>
 
 <script>
-const STORAGE_KEY = "Psave";
+const STORAGE_KEY = "procrastinationSave";
 
-// State Initialization
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+// Check URL Hash first (for cross-device link sync on GitHub Pages)
+function loadFromUrlHash() {
+    if (window.location.hash.length > 1) {
+        try {
+            const encodedData = window.location.hash.substring(1);
+            const jsonStr = decodeURIComponent(encodedData);
+            const parsed = JSON.parse(jsonStr);
+            if (parsed && typeof parsed === "object") {
+                return parsed;
+            }
+        } catch(e) {
+            console.error("Could not parse URL hash save data", e);
+        }
+    }
+    return null;
+}
+
+// Migration check: check URL hash, then old keys
+let data = loadFromUrlHash() || JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("gremlinSave") || "null");
 
 if(!data) {
     data = {
@@ -348,6 +369,9 @@ if(!data) {
         history: [],
         scratchpad: ""
     };
+} else {
+    // If loaded from URL, auto-save to local storage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 // Attach listener for dynamic input preview
@@ -804,6 +828,36 @@ function openImportModal() {
 
 function closeModal() {
     document.getElementById("modalOverlay").style.display = "none";
+}
+
+function generateShareableLink() {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    const fullUrl = window.location.origin + window.location.pathname + "#" + encoded;
+    
+    document.getElementById("modalTitle").textContent = "🔗 Cross-Device Sync Link";
+    document.getElementById("modalDescription").textContent = 
+        "Bookmark this link or send it to your phone/other device to open your current save state anywhere:";
+    
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = fullUrl;
+    txt.select();
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "Copy Link";
+    btn.onclick = () => {
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = fullUrl;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showNotice("Copied!", "Link copied to clipboard. Open it on any phone or browser to sync!");
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
 }
 
 function copyHistory() {
