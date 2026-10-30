@@ -437,10 +437,10 @@ function streakBonus() {
 }
 
 function getBaseReward(type, duration) {
-    if (type === "start") return 2;
-    // Finish task nerfing: 10 points reserved for 25m+ sessions
+    if (type === "start") return 1;
+    // Finish task nerfing: 10 points reserved for 25m+ sessions, minimum +2
     if (duration < 25) {
-        return Math.max(1, Math.round(10 * (duration / 25)));
+        return Math.max(2, Math.round(10 * (duration / 25)));
     }
     return 10;
 }
@@ -457,7 +457,13 @@ function updateTaskPreview() {
     const icon = p.type === "finish" ? "✅" : "🚀";
     const diff = p.difficulty === "hard" ? "Hard ★" : p.difficulty === "medium" ? "Medium ◆" : "Easy";
     const base = getBaseReward(p.type, p.duration);
-    const reward = Math.round(base * difficultyMultiplier(p.difficulty));
+    let reward = Math.round(base * difficultyMultiplier(p.difficulty));
+
+    if (p.type === "start") {
+        reward = Math.min(1, reward);
+    } else {
+        reward = Math.max(2, reward);
+    }
 
     document.getElementById("taskPreview").innerHTML = `
         ${icon} <strong>${p.type.toUpperCase()}</strong> | Name: <em>${p.name}</em> | Duration: <strong>${p.duration}m</strong> | Difficulty: <strong>${diff}</strong> | Potential Reward: <strong style="color:#29d65f;">+${reward}</strong>
@@ -506,11 +512,11 @@ function getPotentialOutcome(task) {
     let base = getBaseReward(task.type, task.duration);
     
     if (task.type === "start") {
-        let reward = Math.min(2, Math.round(base * difficultyMultiplier(task.difficulty)));
+        let reward = Math.min(1, Math.round(base * difficultyMultiplier(task.difficulty)));
         return { isPenalty: false, amount: reward };
     }
 
-    let reward = Math.round(base * difficultyMultiplier(task.difficulty)) + streakBonus();
+    let reward = Math.max(2, Math.round(base * difficultyMultiplier(task.difficulty)) + streakBonus());
 
     return { isPenalty: false, amount: reward };
 }
