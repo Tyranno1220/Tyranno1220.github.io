@@ -347,7 +347,6 @@ function loadFromUrlHash() {
             const jsonStr = decodeURIComponent(encodedData);
             const parsed = JSON.parse(jsonStr);
             if (parsed && typeof parsed === "object") {
-                // Clear the hash from address bar so refreshes don't re-trigger hash loading
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState(null, null, window.location.pathname + window.location.search);
                 } else {
@@ -362,7 +361,6 @@ function loadFromUrlHash() {
     return null;
 }
 
-// Migration check: check URL hash, then local storage
 let data = loadFromUrlHash() || JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("gremlinSave") || "null");
 
 if(!data) {
@@ -376,11 +374,9 @@ if(!data) {
         scratchpad: ""
     };
 } else {
-    // Save imported or existing data to local storage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-// Attach listener for dynamic input preview
 document.getElementById("taskInput").addEventListener("input", updateTaskPreview);
 
 function save() {
@@ -412,7 +408,6 @@ function parseTask(text) {
         type = "finish";
     }
 
-    // Match hours and minutes (e.g., 1h 30m, 2h, 45m)
     const hMatch = text.match(/(\d+)\s*h/i);
     const mMatch = text.match(/(\d+)\s*m/i);
 
@@ -444,7 +439,6 @@ function streakBonus() {
 
 function getBaseReward(type, duration) {
     if (type === "start") return 1;
-    // Finish task nerfing: 10 points reserved for 25m+ sessions, minimum +2
     if (duration < 25) {
         return Math.max(2, Math.round(10 * (duration / 25)));
     }
@@ -464,15 +458,25 @@ function updateTaskPreview() {
     const diff = p.difficulty === "hard" ? "Hard ★" : p.difficulty === "medium" ? "Medium ◆" : "Easy";
     const base = getBaseReward(p.type, p.duration);
     let reward = 0;
+    let streakExplanation = "";
 
     if (p.type === "start") {
         reward = Math.min(1, Math.round(base * difficultyMultiplier(p.difficulty)));
+        streakExplanation = `<span style="color:#aaa;">(Capped at +1)</span>`;
     } else {
-        reward = Math.max(2, Math.round(base * difficultyMultiplier(p.difficulty)) + streakBonus());
+        const baseCalculated = Math.max(2, Math.round(base * difficultyMultiplier(p.difficulty)));
+        const sBonus = streakBonus();
+        reward = baseCalculated + sBonus;
+
+        if (sBonus > 0) {
+            streakExplanation = `<span style="color:#7dcf84;">(Base: ${baseCalculated} + Streak: +${sBonus})</span>`;
+        } else {
+            streakExplanation = `<span style="color:#888;">(Streak: +0)</span>`;
+        }
     }
 
     document.getElementById("taskPreview").innerHTML = `
-        ${icon} <strong>${p.type.toUpperCase()}</strong> | Name: <em>${p.name}</em> | Duration: <strong>${p.duration}m</strong> | Difficulty: <strong>${diff}</strong> | Potential Reward: <strong style="color:#29d65f;">+${reward}</strong>
+        ${icon} <strong>${p.type.toUpperCase()}</strong> | Name: <em>${p.name}</em> | Duration: <strong>${p.duration}m</strong> | Difficulty: <strong>${diff}</strong> | Potential Reward: <strong style="color:#29d65f;">+${reward}</strong> ${streakExplanation}
     `;
 }
 
@@ -495,7 +499,8 @@ function createTask() {
         duration: p.duration,
         name: p.name,
         difficulty: p.difficulty,
-        type: p.type
+        type: p.type,
+        hoursPenalized: 0
     });
 
     input.value = "";
@@ -521,12 +526,10 @@ function getPotentialOutcome(task) {
         return { isPenalty: false, amount: reward };
     }
 
-    // Decay finish task reward based on percentage of time remaining before deadline
     const remainingMs = Math.max(0, task.expiry - now);
     const totalMs = task.expiry - task.created;
     const percentRemaining = totalMs > 0 ? remainingMs / totalMs : 1;
 
-    // Decay factor scales smoothly down to 30% of base reward as deadline approaches
     const decayFactor = 0.3 + (0.7 * percentRemaining);
     const decayedBase = base * decayFactor;
 
@@ -645,11 +648,29 @@ function checkNeglect() {
 
     for(let i = data.tasks.length - 1; i >= 0; i--) {
         let task = data.tasks[i];
+        
         if(now - task.expiry >= 86400000) {
             updateScore(-80);
             data.streak = 0;
             data.neglected.push(task);
             data.tasks.splice(i, 1);
+            continue;
+        }
+
+        if(now > task.expiry) {
+            let overdueHours = Math.floor((now - task.expiry) / 3600000);
+            if(!task.hoursPenalized) task.hoursPenalized = 0;
+
+            if(overdueHours > task.hoursPenalized) {
+                let newHours = overdueHours - task.hoursPenalized;
+                let penalty = newHours * 5;
+                
+                task.hoursPenalized = overdueHours;
+                updateScore(-penalty);
+                data.history.unshift(
+                    `⏳ Overdue Decay (${overdueHours}h overdue): ${task.name} (-${penalty})\n${formatTimestamp(now)}`
+                );
+            }
         }
     }
     save();
@@ -712,7 +733,8 @@ function render() {
         let discardPenalty = getDiscardPenalty(t);
 
         let outcomeDisplay = outcome.isPenalty 
-            ? `<span style="color:#ff5555; font-size:16px; font-weight:bold;">Potential Penalty: -${outcome.amount}</span>`
+            ? `<span style="color:#ff5555; font-size:15px; font-weight:bold;">Potential Penalty: -${outcome.amount}</span>
+               <div style="color:#ffaa44; font-size:11px; margin-top:2px;">⚠️ LATE: Deducting -5 points every extra hour overdue!</div>`
             : `<span style="color:#29d65f; font-size:16px; font-weight:bold;">Potential Reward: +${outcome.amount}</span>`;
 
         taskHtml += `
@@ -781,7 +803,6 @@ function copyHistory() {
     if(!data.history.length) return;
     const text = data.history.join("\n\n");
     
-    // Fallback clipboard logic for iframe sandboxes
     const textarea = document.createElement("textarea");
     textarea.value = text;
     document.body.appendChild(textarea);
@@ -892,14 +913,12 @@ function closeModal() {
     document.getElementById("modalOverlay").style.display = "none";
 }
 
-// Scratchpad auto-save
 document.getElementById("scratchpad").value = data.scratchpad || "";
 document.getElementById("scratchpad").addEventListener("input", e => {
     data.scratchpad = e.target.value;
     save();
 });
 
-// Initial load & timer loop
 updateTaskPreview();
 render();
 setInterval(render, 1000);
