@@ -585,7 +585,7 @@ function promptDiscardTask(id) {
 
     document.getElementById("modalTitle").textContent = "Discard Task?";
     document.getElementById("modalDescription").textContent = 
-        `Are you sure you want to discard "${task.name}"? It will cost -${penalty} points!`;
+        `Are you sure you want to discard "${task.name}"? It will cost ${penalty} points!`;
     
     const txt = document.getElementById("modalTextarea");
     txt.style.display = "none";
