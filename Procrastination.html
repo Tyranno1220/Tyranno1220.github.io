@@ -514,7 +514,6 @@ function getPotentialOutcome(task) {
         return { isPenalty: true, amount: late };
     }
 
-    // Use the exact same base reward logic as the task creation preview
     let base = getBaseReward(task.type, task.duration);
     
     if (task.type === "start") {
@@ -522,7 +521,16 @@ function getPotentialOutcome(task) {
         return { isPenalty: false, amount: reward };
     }
 
-    let reward = Math.max(2, Math.round(base * difficultyMultiplier(task.difficulty)) + streakBonus());
+    // Decay finish task reward based on percentage of time remaining before deadline
+    const remainingMs = Math.max(0, task.expiry - now);
+    const totalMs = task.expiry - task.created;
+    const percentRemaining = totalMs > 0 ? remainingMs / totalMs : 1;
+
+    // Decay factor scales smoothly down to 30% of base reward as deadline approaches
+    const decayFactor = 0.3 + (0.7 * percentRemaining);
+    const decayedBase = base * decayFactor;
+
+    let reward = Math.max(2, Math.round(decayedBase * difficultyMultiplier(task.difficulty)) + streakBonus());
 
     return { isPenalty: false, amount: reward };
 }
