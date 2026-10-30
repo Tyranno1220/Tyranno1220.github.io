@@ -655,8 +655,20 @@ function formatRemaining(task) {
     let diff = task.expiry - Date.now();
 
     if(diff <= 0) {
-        let mins = Math.floor(Math.abs(diff) / 60000);
-        return `<span class="overdue">${mins}m overdue</span>`;
+        let overdueMins = Math.floor(Math.abs(diff) / 60000);
+        let neglectRemainingMs = (task.expiry + 86400000) - Date.now();
+
+        if (neglectRemainingMs <= 0) {
+            return `<span class="overdue">${overdueMins}m overdue (Becoming neglected...)</span>`;
+        }
+
+        let neglectSecs = Math.floor(neglectRemainingMs / 1000);
+        let neglectH = Math.floor(neglectSecs / 3600);
+        let neglectM = Math.floor((neglectSecs % 3600) / 60);
+
+        let neglectStr = neglectH > 0 ? `${neglectH}h ${neglectM}m` : `${neglectM}m`;
+
+        return `<span class="overdue">${overdueMins}m overdue</span> <span style="color:#ffaa44; font-size:11px;">(neglected in ${neglectStr})</span>`;
     }
 
     let secs = Math.floor(diff / 1000);
@@ -680,116 +692,137 @@ function render() {
     let tasks = [...data.tasks];
     let sort = document.getElementById("sortMode").value;
 
-    if(sort === "deadline") {
-        tasks.sort((a, b) => a.expiry - b.expiry);
-    } else if(sort === "name") {
-        tasks.sort((a, b) => a.name.localeCompare(b.name));
-    } else if(sort === "created") {
-        tasks.sort((a, b) => a.created - b.created);
-    }
+    if(sort === "deadline") tasks.sort((a, b) => a.expiry - b.expiry);
+    if(sort === "name") tasks.sort((a, b) => a.name.localeCompare(b.name));
+    if(sort === "created") tasks.sort((a, b) => a.created - b.created);
 
     let taskHtml = "";
 
     for(let t of tasks) {
-        const outcome = getPotentialOutcome(t);
-        const outcomeDisplay = outcome.isPenalty
-            ? `<span style="color:#ff5555;">Potential Penalty: -${outcome.amount}</span>`
-            : `<span style="color:#29d65f;">Potential Reward: +${outcome.amount}</span>`;
+        let outcome = getPotentialOutcome(t);
+        let actionLabel = t.type === "finish" ? "✅ COMPLETE" : "🚀 I STARTED!";
+        let discardPenalty = getDiscardPenalty(t);
 
-        const actionLabel = t.type === "start" ? "🚀 I STARTED!" : "✅ COMPLETE";
+        let outcomeDisplay = outcome.isPenalty 
+            ? `<span style="color:#ff5555; font-size:16px; font-weight:bold;">Potential Penalty: -${outcome.amount}</span>`
+            : `<span style="color:#29d65f; font-size:16px; font-weight:bold;">Potential Reward: +${outcome.amount}</span>`;
 
         taskHtml += `
         <div class="task">
             <div class="taskName">
                 ${t.type === "finish" ? "✅" : "🚀"} ${t.name}
             </div>
-            <div style="font-size:15px; font-weight:bold; margin-top:4px;">
+
+            <div style="margin-top:6px; margin-bottom:6px;">
                 ${outcomeDisplay}
             </div>
+
             <div class="small">
-                ${formatRemaining(t)} | Difficulty: <strong>${t.difficulty}</strong> | Duration: <strong>${t.duration}m</strong><br>
-                Created: ${formatTimestamp(t.created)}<br>
+                ${formatRemaining(t)}<br>
+                Difficulty: <strong>${t.difficulty}</strong> | Duration: <strong>${t.duration}m</strong><br>
                 Due: ${formatTimestamp(t.expiry)}
             </div>
+
             <div style="display:flex; gap:8px; margin-top:10px;">
-                <button style="flex:1;" class="green" onclick="completeTask('${t.id}')">
+                <button class="green" onclick="completeTask('${t.id}')" style="flex:1;">
                     ${actionLabel}
                 </button>
-                <button class="red" style="padding:0 12px;" onclick="promptDiscardTask('${t.id}')" title="Discard task with penalty">
-                    🗑️ DISCARD
+                <button class="red" onclick="promptDiscardTask('${t.id}')" style="padding:6px 10px; font-size:12px;">
+                    Discard (-${discardPenalty})
                 </button>
             </div>
-        </div>`;
+        </div>
+        `;
     }
 
-    if(tasks.length === 0) {
-        taskHtml = `<div style="text-align:center; color:#666; padding-top:50px;">No active tasks.<br>Create one above!</div>`;
-    }
-
-    document.getElementById("tasks").innerHTML = taskHtml;
+    document.getElementById("tasks").innerHTML = taskHtml || `<div style="text-align:center; color:#666; padding:40px 0;">No active tasks.<br>Create one above!</div>`;
     document.getElementById("taskCount").textContent = `${data.tasks.length}/3`;
 
     let nHtml = "";
-
     for(let t of data.neglected) {
         nHtml += `
         <div class="task neglectedTask">
-            <div class="taskName" style="font-size:16px; color:#ccc;">${t.name}</div>
-            <button style="margin-top:8px;" class="red" onclick="recoverNeglected('${t.id}')">
-                Recover Task
+            <div class="taskName">${t.name}</div>
+            <div class="small">Originally due: ${formatTimestamp(t.expiry)}</div>
+            <button onclick="recoverNeglected('${t.id}')" style="margin-top:8px;">
+                Recover
             </button>
-        </div>`;
+        </div>
+        `;
     }
 
     if(data.neglected.length === 0) {
         document.getElementById("neglected").innerHTML = `
-        <div style="text-align:center; color:#666; padding-top:50px;">
-            Nothing here.<br><br>Keep it that way.
-        </div>`;
+            <div style="text-align:center; color:#666; padding-top:60px;">
+                Nothing is here.<br><br>Keep it that way.
+            </div>
+        `;
     } else {
         let header = `
-        <div style="color:#999; margin-bottom:12px; font-size:12px;">
-            Charged -80 counts each. Recover remaining points quickly before they fade.
-        </div>`;
+        <div style="color:#aaa; font-size:12px; margin-bottom:12px; line-height:1.4;">
+            Charged -80 points per neglected task.<br>Recover to regain points before time runs out.
+        </div>
+        `;
         document.getElementById("neglected").innerHTML = header + nHtml;
     }
 
-    document.getElementById("history").textContent = data.history.slice(0, 100).join("\n\n");
+    document.getElementById("history").textContent = data.history.join("\n\n");
 }
 
-// Scratchpad Autosave
-document.getElementById("scratchpad").value = data.scratchpad || "";
-document.getElementById("scratchpad").addEventListener("input", e => {
-    data.scratchpad = e.target.value;
-    save();
-});
+function copyHistory() {
+    if(!data.history.length) return;
+    const text = data.history.join("\n\n");
+    
+    // Fallback clipboard logic for iframe sandboxes
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
 
-// Modal Logic
-function showNotice(title, desc) {
-    document.getElementById("modalTitle").textContent = title;
-    document.getElementById("modalDescription").textContent = desc;
-    document.getElementById("modalTextarea").style.display = "none";
-    document.getElementById("modalPrimaryBtn").style.display = "none";
-    document.getElementById("modalOverlay").style.display = "flex";
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    clearBtn.disabled = false;
+    clearBtn.style.opacity = "1";
+    clearBtn.style.cursor = "pointer";
+
+    showNotice("Copied!", "History copied to clipboard. You can now clear the log.");
+}
+
+function clearHistory() {
+    data.history = [];
+    save();
+
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    clearBtn.disabled = true;
+    clearBtn.style.opacity = "0.4";
+    clearBtn.style.cursor = "not-allowed";
+
+    render();
 }
 
 function openExportModal() {
     document.getElementById("modalTitle").textContent = "Export Save Data";
-    document.getElementById("modalDescription").textContent = "Copy the save string below:";
+    document.getElementById("modalDescription").textContent = "Copy this encoded text string to backup or transfer your progress:";
+    
     const txt = document.getElementById("modalTextarea");
     txt.style.display = "block";
     txt.value = encodeURIComponent(JSON.stringify(data));
     txt.select();
 
     const btn = document.getElementById("modalPrimaryBtn");
-    btn.style.display = "none";
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "Close";
+    btn.onclick = closeModal;
 
     document.getElementById("modalOverlay").style.display = "flex";
 }
 
 function openImportModal() {
     document.getElementById("modalTitle").textContent = "Import Save Data";
-    document.getElementById("modalDescription").textContent = "Paste your save data string below:";
+    document.getElementById("modalDescription").textContent = "Paste your exported save string below:";
+    
     const txt = document.getElementById("modalTextarea");
     txt.style.display = "block";
     txt.value = "";
@@ -797,25 +830,52 @@ function openImportModal() {
     const btn = document.getElementById("modalPrimaryBtn");
     btn.style.display = "inline-block";
     btn.className = "green";
-    btn.textContent = "Import Data";
+    btn.textContent = "Load Save";
     btn.onclick = () => {
         try {
-            if(!txt.value.trim()) return;
-            const inputVal = txt.value.trim();
-            let jsonStr;
-            try {
-                jsonStr = decodeURIComponent(inputVal);
-            } catch(err) {
-                jsonStr = atob(inputVal);
-            }
-            data = JSON.parse(jsonStr);
+            const raw = txt.value.trim();
+            if(!raw) return;
+            const parsed = JSON.parse(decodeURIComponent(raw));
+            data = parsed;
             save();
             render();
             closeModal();
+            showNotice("Success!", "Save data successfully imported.");
         } catch(e) {
-            showNotice("Error", "Invalid save string provided.");
+            showNotice("Error", "Invalid save data provided.");
         }
     };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function generateShareableLink() {
+    const jsonStr = JSON.stringify(data);
+    const encoded = encodeURIComponent(jsonStr);
+    const fullUrl = window.location.origin + window.location.pathname + "#" + encoded;
+
+    const textarea = document.createElement("textarea");
+    textarea.value = fullUrl;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    showNotice("Link Generated!", "A full sync URL has been copied to your clipboard. Open it on any device to transfer your progress!");
+}
+
+function showNotice(title, msg) {
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalDescription").textContent = msg;
+
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "none";
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "OK";
+    btn.onclick = closeModal;
 
     document.getElementById("modalOverlay").style.display = "flex";
 }
@@ -824,75 +884,18 @@ function closeModal() {
     document.getElementById("modalOverlay").style.display = "none";
 }
 
-function generateShareableLink() {
-    const encoded = encodeURIComponent(JSON.stringify(data));
-    const fullUrl = window.location.origin + window.location.pathname + "#" + encoded;
-    
-    document.getElementById("modalTitle").textContent = "🔗 Cross-Device Sync Link";
-    document.getElementById("modalDescription").textContent = 
-        "Bookmark this link or send it to your phone/other device to open your current save state anywhere:";
-    
-    const txt = document.getElementById("modalTextarea");
-    txt.style.display = "block";
-    txt.value = fullUrl;
-    txt.select();
-
-    const btn = document.getElementById("modalPrimaryBtn");
-    btn.style.display = "inline-block";
-    btn.className = "green";
-    btn.textContent = "Copy Link";
-    btn.onclick = () => {
-        const dummy = document.createElement("textarea");
-        document.body.appendChild(dummy);
-        dummy.value = fullUrl;
-        dummy.select();
-        document.execCommand("copy");
-        document.body.removeChild(dummy);
-        showNotice("Copied!", "Link copied to clipboard. Open it on any phone or browser to sync!");
-    };
-
-    document.getElementById("modalOverlay").style.display = "flex";
-}
-
-function copyHistory() {
-    const text = data.history.join("\n\n");
-    const dummy = document.createElement("textarea");
-    document.body.appendChild(dummy);
-    dummy.value = text;
-    dummy.select();
-    document.execCommand("copy");
-    document.body.removeChild(dummy);
-
-    const clearBtn = document.getElementById("clearHistoryBtn");
-    if (clearBtn) {
-        clearBtn.disabled = false;
-        clearBtn.style.opacity = "1";
-        clearBtn.style.cursor = "pointer";
-    }
-
-    showNotice("Copied", "History log copied to clipboard. You can now clear history if desired.");
-}
-
-function clearHistory() {
-    data.history = [];
+// Scratchpad auto-save
+document.getElementById("scratchpad").value = data.scratchpad || "";
+document.getElementById("scratchpad").addEventListener("input", e => {
+    data.scratchpad = e.target.value;
     save();
-    render();
+});
 
-    const clearBtn = document.getElementById("clearHistoryBtn");
-    if (clearBtn) {
-        clearBtn.disabled = true;
-        clearBtn.style.opacity = "0.4";
-        clearBtn.style.cursor = "not-allowed";
-    }
-
-    showNotice("Cleared", "History log has been cleared.");
-}
-
-// Initial Setup
+// Initial load & timer loop
 updateTaskPreview();
 render();
 setInterval(render, 1000);
-</script>
 
+</script>
 </body>
 </html>
