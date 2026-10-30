@@ -463,12 +463,12 @@ function updateTaskPreview() {
     const icon = p.type === "finish" ? "✅" : "🚀";
     const diff = p.difficulty === "hard" ? "Hard ★" : p.difficulty === "medium" ? "Medium ◆" : "Easy";
     const base = getBaseReward(p.type, p.duration);
-    let reward = Math.round(base * difficultyMultiplier(p.difficulty));
+    let reward = 0;
 
     if (p.type === "start") {
-        reward = Math.min(1, reward);
+        reward = Math.min(1, Math.round(base * difficultyMultiplier(p.difficulty)));
     } else {
-        reward = Math.max(2, reward);
+        reward = Math.max(2, Math.round(base * difficultyMultiplier(p.difficulty)) + streakBonus());
     }
 
     document.getElementById("taskPreview").innerHTML = `
