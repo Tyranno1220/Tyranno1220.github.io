@@ -732,4 +732,155 @@ function render() {
     if(data.neglected.length === 0) {
         document.getElementById("neglected").innerHTML = `
         <div style="text-align:center; color:#666; padding-top:50px;">
-            Nothing here.<br><br>Keep i
+            Nothing here.<br><br>Keep it that way.
+        </div>`;
+    } else {
+        let header = `
+        <div style="color:#999; margin-bottom:12px; font-size:12px;">
+            Charged -80 counts each. Recover remaining points quickly before they fade.
+        </div>`;
+        document.getElementById("neglected").innerHTML = header + nHtml;
+    }
+
+    document.getElementById("history").textContent = data.history.slice(0, 100).join("\n\n");
+}
+
+// Scratchpad Autosave
+document.getElementById("scratchpad").value = data.scratchpad || "";
+document.getElementById("scratchpad").addEventListener("input", e => {
+    data.scratchpad = e.target.value;
+    save();
+});
+
+// Modal Logic
+function showNotice(title, desc) {
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalDescription").textContent = desc;
+    document.getElementById("modalTextarea").style.display = "none";
+    document.getElementById("modalPrimaryBtn").style.display = "none";
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openExportModal() {
+    document.getElementById("modalTitle").textContent = "Export Save Data";
+    document.getElementById("modalDescription").textContent = "Copy the save string below:";
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = encodeURIComponent(JSON.stringify(data));
+    txt.select();
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "none";
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openImportModal() {
+    document.getElementById("modalTitle").textContent = "Import Save Data";
+    document.getElementById("modalDescription").textContent = "Paste your save data string below:";
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = "";
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "Import Data";
+    btn.onclick = () => {
+        try {
+            if(!txt.value.trim()) return;
+            const inputVal = txt.value.trim();
+            let jsonStr;
+            try {
+                jsonStr = decodeURIComponent(inputVal);
+            } catch(err) {
+                jsonStr = atob(inputVal);
+            }
+            data = JSON.parse(jsonStr);
+            save();
+            render();
+            closeModal();
+        } catch(e) {
+            showNotice("Error", "Invalid save string provided.");
+        }
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").style.display = "none";
+}
+
+function generateShareableLink() {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    const fullUrl = window.location.origin + window.location.pathname + "#" + encoded;
+    
+    document.getElementById("modalTitle").textContent = "🔗 Cross-Device Sync Link";
+    document.getElementById("modalDescription").textContent = 
+        "Bookmark this link or send it to your phone/other device to open your current save state anywhere:";
+    
+    const txt = document.getElementById("modalTextarea");
+    txt.style.display = "block";
+    txt.value = fullUrl;
+    txt.select();
+
+    const btn = document.getElementById("modalPrimaryBtn");
+    btn.style.display = "inline-block";
+    btn.className = "green";
+    btn.textContent = "Copy Link";
+    btn.onclick = () => {
+        const dummy = document.createElement("textarea");
+        document.body.appendChild(dummy);
+        dummy.value = fullUrl;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showNotice("Copied!", "Link copied to clipboard. Open it on any phone or browser to sync!");
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function copyHistory() {
+    const text = data.history.join("\n\n");
+    const dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = text;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (clearBtn) {
+        clearBtn.disabled = false;
+        clearBtn.style.opacity = "1";
+        clearBtn.style.cursor = "pointer";
+    }
+
+    showNotice("Copied", "History log copied to clipboard. You can now clear history if desired.");
+}
+
+function clearHistory() {
+    data.history = [];
+    save();
+    render();
+
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (clearBtn) {
+        clearBtn.disabled = true;
+        clearBtn.style.opacity = "0.4";
+        clearBtn.style.cursor = "not-allowed";
+    }
+
+    showNotice("Cleared", "History log has been cleared.");
+}
+
+// Initial Setup
+updateTaskPreview();
+render();
+setInterval(render, 1000);
+</script>
+
+</body>
+</html>
