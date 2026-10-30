@@ -347,6 +347,12 @@ function loadFromUrlHash() {
             const jsonStr = decodeURIComponent(encodedData);
             const parsed = JSON.parse(jsonStr);
             if (parsed && typeof parsed === "object") {
+                // Clear the hash from address bar so refreshes don't re-trigger hash loading
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                } else {
+                    window.location.hash = "";
+                }
                 return parsed;
             }
         } catch(e) {
@@ -356,7 +362,7 @@ function loadFromUrlHash() {
     return null;
 }
 
-// Migration check: check URL hash, then old keys
+// Migration check: check URL hash, then local storage
 let data = loadFromUrlHash() || JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("gremlinSave") || "null");
 
 if(!data) {
@@ -370,7 +376,7 @@ if(!data) {
         scratchpad: ""
     };
 } else {
-    // If loaded from URL, auto-save to local storage
+    // Save imported or existing data to local storage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
