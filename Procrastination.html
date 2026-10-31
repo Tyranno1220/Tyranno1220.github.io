@@ -504,7 +504,8 @@ function createTask() {
         name: p.name,
         difficulty: p.difficulty,
         type: p.type,
-        hoursPenalized: 0
+        hoursPenalized: 0,
+        initialPenaltyDeducted: false
     });
 
     input.value = "";
@@ -517,10 +518,8 @@ function getPotentialOutcome(task) {
     const now = Date.now();
 
     if (now > task.expiry) {
-        let late = Math.ceil((now - task.expiry) / 60000 / 2);
-        late = Math.min(late, 50);
-        late = Math.round(late * difficultyMultiplier(task.difficulty));
-        return { isPenalty: true, amount: late };
+        // Late tasks now grant a flat completion reward (+2) because overdue penalties are charged live in real-time
+        return { isPenalty: false, amount: 2, isOverdueCompletion: true };
     }
 
     let base = getBaseReward(task.type, task.duration);
@@ -548,17 +547,18 @@ function completeTask(id) {
 
     const outcome = getPotentialOutcome(task);
 
-    if(!outcome.isPenalty) {
+    if (outcome.isOverdueCompletion) {
+        // Completing late stops point bleeding and rewards a baseline +2
+        data.streak = 0;
+        updateScore(outcome.amount);
+        data.history.unshift(
+            `✅ Overdue Task Rescued: ${task.name} (+${outcome.amount})\n${formatTimestamp(Date.now())}`
+        );
+    } else {
         data.streak++;
         updateScore(outcome.amount);
         data.history.unshift(
             `✅ ${task.type === "finish" ? "Finished" : "Started"}: ${task.name} (+${outcome.amount})\n${formatTimestamp(Date.now())}`
-        );
-    } else {
-        data.streak = 0;
-        updateScore(-outcome.amount);
-        data.history.unshift(
-            `⚠️ Late Completion: ${task.name} (-${outcome.amount})\n${formatTimestamp(Date.now())}`
         );
     }
 
@@ -569,109 +569,96 @@ function completeTask(id) {
 
 function getDiscardPenalty(task) {
     const now = Date.now();
-    let penalty = 0;
+    let baseDiscard = Math.max(3, Math.round((task.duration / 5) * difficultyMultiplier(task.difficulty)));
 
-    if (now > task.expiry) {
-        let overdueMins = Math.ceil((now - task.expiry) / 60000);
-        let overdueHours = Math.floor(overdueMins / 60);
-        let basePenalty = Math.round(20 + (task.duration * 0.5));
-        let accumulatedDecay = overdueHours * 5;
-        penalty = basePenalty + accumulatedDecay + 10;
-    } else {
-        penalty = Math.max(3, Math.round((task.duration / 5) * difficultyMultiplier(task.difficulty)));
+    if (now <= task.expiry) {
+        const remainingMs = task.expiry - now;
+        const totalMs = task.expiry - task.created;
+        const percentRemaining = totalMs > 0 ? remainingMs / totalMs : 1;
+
+        // Escalates penalty if panic-discarding right before deadline (up to 1.5x)
+        if (percentRemaining < 0.2) {
+            baseDiscard = Math.round(baseDiscard * 1.5);
+        }
+        return baseDiscard;
     }
 
-    return penalty;
+    // Overdue discard penalty factoring accumulated hourly decay
+    const overdueMinutes = Math.floor((now - task.expiry) / 60000);
+    const overdueHours = Math.floor(overdueMinutes / 60);
+    const accumulatedDecay = overdueHours * 5;
+    
+    return baseDiscard + accumulatedDecay + 10;
 }
 
-function promptDiscardTask(id) {
+function discardTask(id) {
     let task = data.tasks.find(x => x.id === id);
     if(!task) return;
 
-    let penalty = getDiscardPenalty(task);
-    openModal(
-        "Discard Task?",
+    const penalty = getDiscardPenalty(task);
+
+    showConfirm(
+        "Discard Task",
         `Are you sure you want to discard "${task.name}"? It will cost ${penalty} points!`,
-        "",
-        "Discard",
-        () => discardTask(id, penalty),
-        false
+        () => {
+            updateScore(-penalty);
+            data.history.unshift(
+                `🗑️ Discarded: ${task.name} (-${penalty})\n${formatTimestamp(Date.now())}`
+            );
+            data.tasks = data.tasks.filter(x => x.id !== id);
+            save();
+            render();
+        }
     );
 }
 
-function discardTask(id, penalty) {
-    let task = data.tasks.find(x => x.id === id);
-    if(!task) return;
-
-    data.streak = 0;
-    updateScore(-penalty);
-    data.history.unshift(
-        `🗑️ Discarded: ${task.name} (-${penalty})\n${formatTimestamp(Date.now())}`
-    );
-
-    data.tasks = data.tasks.filter(x => x.id !== id);
-    closeModal();
-    save();
-    render();
-}
-
-function recoverNeglected(id) {
-    let index = data.neglected.findIndex(x => x.id === id);
-    if(index === -1) return;
-
-    if(data.tasks.length >= 3) {
-        showNotice("Task Limit Reached", "Please finish or discard an active task before recovering a neglected task.");
-        return;
-    }
-
-    let task = data.neglected[index];
-    data.neglected.splice(index, 1);
-
+function checkNeglect() {
     let now = Date.now();
-    task.created = now;
-    task.expiry = now + task.duration * 60000;
-    task.hoursPenalized = 0;
-
-    data.tasks.push(task);
-    data.history.unshift(
-        `🔄 Recovered Neglected Task: ${task.name}\n${formatTimestamp(now)}`
-    );
-
-    save();
-    render();
-}
-
-function checkNeglectAndOverdue() {
-    const now = Date.now();
     let updated = false;
 
-    // Check for neglected tasks (24h overdue) and hourly overdue decay (-5/hr)
     for(let i = data.tasks.length - 1; i >= 0; i--) {
-        let t = data.tasks[i];
-        if(now > t.expiry) {
-            let overdueMins = (now - t.expiry) / 60000;
-            let overdueHours = Math.floor(overdueMins / 60);
-
-            // Apply hourly overdue penalty
-            if (overdueHours > (t.hoursPenalized || 0)) {
-                let newHours = overdueHours - (t.hoursPenalized || 0);
-                let penalty = newHours * 5;
-                t.hoursPenalized = overdueHours;
-                
-                updateScore(-penalty);
+        let task = data.tasks[i];
+        
+        if (now > task.expiry) {
+            // Initial late deduction upon hitting deadline
+            if (!task.initialPenaltyDeducted) {
+                let latePenalty = Math.round(10 * difficultyMultiplier(task.difficulty));
+                updateScore(-latePenalty);
+                data.streak = 0;
+                task.initialPenaltyDeducted = true;
                 data.history.unshift(
-                    `⏳ Overdue Decay Penalty: ${t.name} (-${penalty} points for sitting ${overdueHours}h overdue)\n${formatTimestamp(now)}`
+                    `⚠️ Task Became Overdue: ${task.name} (-${latePenalty})\n${formatTimestamp(now)}`
                 );
                 updated = true;
             }
 
-            // Move to neglected if 24 hours overdue
-            if(overdueMins >= 1440) {
-                data.tasks.splice(i, 1);
-                data.neglected.push(t);
-                updateScore(-80);
+            // Hourly overdue decay deduction (-5/hr)
+            let overdueMinutes = Math.floor((now - task.expiry) / 60000);
+            let currentOverdueHours = Math.floor(overdueMinutes / 60);
+            
+            if (currentOverdueHours > (task.hoursPenalized || 0)) {
+                let hoursToCharge = currentOverdueHours - (task.hoursPenalized || 0);
+                let decayPenalty = hoursToCharge * 5;
+                
+                task.hoursPenalized = currentOverdueHours;
+                updateScore(-decayPenalty);
                 data.history.unshift(
-                    `💀 Neglected Task: ${t.name} (-80 points)\n${formatTimestamp(now)}`
+                    `⏳ Overdue Decay (${task.name}): -${decayPenalty} pts (${currentOverdueHours}h overdue)\n${formatTimestamp(now)}`
+                );
+                updated = true;
+            }
+
+            // Task Neglected after 24 hours overdue
+            if (now - task.expiry > 86400000) {
+                data.neglected.push({
+                    ...task,
+                    neglectedAt: now
+                });
+                data.tasks.splice(i, 1);
+                updateScore(-80);
+                data.streak = 0;
+                data.history.unshift(
+                    `💀 Neglected: ${task.name} (-80)\n${formatTimestamp(now)}`
                 );
                 updated = true;
             }
@@ -684,93 +671,136 @@ function checkNeglectAndOverdue() {
     }
 }
 
-function formatTimeRemaining(ms) {
-    if(ms <= 0) return "Overdue";
-    let secs = Math.floor(ms / 1000);
-    let mins = Math.floor(secs / 60);
-    let hrs = Math.floor(mins / 60);
+function recoverNeglected(id) {
+    let task = data.neglected.find(x => x.id === id);
+    if(!task) return;
 
-    mins = mins % 60;
-    secs = secs % 60;
-
-    if(hrs > 0) return `${hrs}h ${mins}m`;
-    if(mins > 0) return `${mins}m ${secs}s`;
-    return `${secs}s`;
+    data.neglected = data.neglected.filter(x => x.id !== id);
+    updateScore(15);
+    data.history.unshift(
+        `🧹 Recovered Neglected: ${task.name} (+15)\n${formatTimestamp(Date.now())}`
+    );
+    save();
+    render();
 }
 
-function formatTimestamp(ts) {
-    const d = new Date(ts);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+function clearHistory() {
+    if (!data.history || data.history.length === 0) return;
+
+    showConfirm(
+        "Clear History",
+        "Are you sure you want to clear your entire history log?",
+        () => {
+            data.history = [];
+            save();
+            render();
+        }
+    );
+}
+
+function copyHistory() {
+    if (!data.history || data.history.length === 0) {
+        showNotice("History Empty", "There is no history log to copy.");
+        return;
+    }
+    const historyText = data.history.join("\n\n");
+    navigator.clipboard.writeText(historyText).then(() => {
+        showNotice("Copied!", "History log copied to clipboard.");
+    }).catch(err => {
+        console.error("Copy failed", err);
+    });
+}
+
+function formatTimestamp(ms) {
+    const d = new Date(ms);
+    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatTimeRemaining(ms) {
+    if (ms <= 0) return "Overdue";
+    let totalSecs = Math.floor(ms / 1000);
+    let hrs = Math.floor(totalSecs / 3600);
+    let mins = Math.floor((totalSecs % 3600) / 60);
+    let secs = totalSecs % 60;
+
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
 }
 
 function render() {
     document.getElementById("score").innerText = data.score;
     document.getElementById("highScore").innerText = data.highScore;
     document.getElementById("streak").innerText = data.streak;
-    document.getElementById("taskCount").innerText = `${data.tasks.length}/3`;
 
-    // Sort active tasks
-    let sortMode = document.getElementById("sortMode").value;
-    let sortedTasks = [...data.tasks];
+    // Render Active Tasks
+    const sortMode = document.getElementById("sortMode").value;
+    let tasksCopy = [...data.tasks];
 
-    if(sortMode === "deadline") {
-        sortedTasks.sort((a,b) => a.expiry - b.expiry);
-    } else if(sortMode === "name") {
-        sortedTasks.sort((a,b) => a.name.localeCompare(b.name));
-    } else if(sortMode === "created") {
-        sortedTasks.sort((a,b) => b.created - a.created);
+    if (sortMode === "name") {
+        tasksCopy.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortMode === "created") {
+        tasksCopy.sort((a, b) => a.created - b.created);
+    } else {
+        tasksCopy.sort((a, b) => a.expiry - b.expiry);
     }
 
-    let tasksHtml = "";
+    document.getElementById("taskCount").innerText = `${data.tasks.length}/3`;
+    const tasksDiv = document.getElementById("tasks");
+    tasksDiv.innerHTML = "";
+
     const now = Date.now();
 
-    sortedTasks.forEach(task => {
-        let isOverdue = now > task.expiry;
-        let remainingMs = task.expiry - now;
-        let outcome = getPotentialOutcome(task);
-        let timeStr = isOverdue ? "OVERDUE" : formatTimeRemaining(remainingMs);
+    tasksCopy.forEach(task => {
+        const outcome = getPotentialOutcome(task);
+        const discardPenalty = getDiscardPenalty(task);
+        const isOverdue = now > task.expiry;
+        const diffLabel = task.difficulty === "hard" ? "Hard ★" : task.difficulty === "medium" ? "Medium ◆" : "Easy";
 
-        let neglectCountdown = "";
+        let timeStr = "";
+        let overdueNotice = "";
+
         if (isOverdue) {
-            let minsOverdue = Math.floor((now - task.expiry) / 60000);
-            let minsUntilNeglect = Math.max(0, 1440 - minsOverdue);
-            let h = Math.floor(minsUntilNeglect / 60);
-            let m = minsUntilNeglect % 60;
-            neglectCountdown = `<div style="color:#e5a93c; font-size:11px; margin-top:2px;">⚠️ LATE: Deducting -5 points every extra hour overdue! (Neglected in ${h}h ${m}m)</div>`;
+            const overdueMs = now - task.expiry;
+            const overdueMins = Math.floor(overdueMs / 60000);
+            const overdueHrs = Math.floor(overdueMins / 60);
+            const displayOverdueMins = overdueMins % 60;
+            const timeUntilNeglectMs = Math.max(0, 86400000 - overdueMs);
+            const neglectHrs = Math.floor(timeUntilNeglectMs / 3600000);
+            const neglectMins = Math.floor((timeUntilNeglectMs % 3600000) / 60000);
+
+            timeStr = `<span class="overdue">${overdueHrs > 0 ? overdueHrs + "h " : ""}${displayOverdueMins}m overdue (neglected in ${neglectHrs}h ${neglectMins}m)</span>`;
+            overdueNotice = `<div style="color:#ff9900; font-size:11px; margin-top:2px;">⚠️ LATE: Deducting -5 pts/hr overdue! Complete to stop point bleed and earn +2.</div>`;
+        } else {
+            timeStr = `Time left: ${formatTimeRemaining(task.expiry - now)}`;
         }
 
-        tasksHtml += `
-            <div class="task" style="${isOverdue ? 'border-left-color: #ff5555;' : ''}">
-                <div class="taskName">${task.name}</div>
-                <div class="small">
-                    Type: <strong>${task.type.toUpperCase()}</strong> | 
-                    Difficulty: <strong>${task.difficulty}</strong> | 
-                    Time Left: <span class="${isOverdue ? 'overdue' : ''}">${timeStr}</span>
-                </div>
-                ${neglectCountdown}
-                <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:13px;">
-                        ${outcome.isPenalty ? `Late Penalty: <strong style="color:#ff5555;">-${outcome.amount}</strong>` : `Reward: <strong style="color:#29d65f;">+${outcome.amount}</strong>`}
-                    </span>
-                    <div style="display:flex; gap:6px;">
-                        <button class="green" style="padding:4px 8px; font-size:12px;" onclick="completeTask('${task.id}')">
-                            ${task.type === 'finish' ? 'Complete' : 'Start'}
-                        </button>
-                        <button class="red" style="padding:4px 8px; font-size:12px;" onclick="promptDiscardTask('${task.id}')">
-                            Discard
-                        </button>
-                    </div>
-                </div>
+        const outcomeText = `<span style="color:#29d65f;">+${outcome.amount}</span>`;
+
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerHTML = `
+            <div class="taskName">${task.type === "finish" ? "✅" : "🚀"} ${task.name}</div>
+            <div class="small">
+                Type: ${task.type.toUpperCase()} | Duration: ${task.duration}m | Difficulty: ${diffLabel}<br>
+                ${timeStr}<br>
+                Potential Outcome: ${outcomeText}
+                ${overdueNotice}
+            </div>
+            <div style="margin-top:10px; display:flex; gap:8px;">
+                <button class="green" onclick="completeTask('${task.id}')">COMPLETE</button>
+                <button class="red" onclick="discardTask('${task.id}')">DISCARD (-${discardPenalty})</button>
             </div>
         `;
+        tasksDiv.appendChild(div);
     });
 
-    document.getElementById("tasks").innerHTML = tasksHtml || "<div style='color:#666; font-size:13px; text-align:center; padding-top:40px;'>No active tasks. Create one above!</div>";
+    // Render History
+    const historyDiv = document.getElementById("history");
+    historyDiv.innerText = data.history.join("\n\n");
 
-    // History Log
-    document.getElementById("history").innerText = data.history.join("\n\n");
-    let clearBtn = document.getElementById("clearHistoryBtn");
-    if(data.history.length > 0) {
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    if (data.history && data.history.length > 0) {
         clearBtn.disabled = false;
         clearBtn.style.opacity = "1";
         clearBtn.style.cursor = "pointer";
@@ -780,113 +810,120 @@ function render() {
         clearBtn.style.cursor = "not-allowed";
     }
 
-    // Neglected Tasks
-    let neglectedHtml = "";
-    data.neglected.forEach(task => {
-        neglectedHtml += `
-            <div class="task neglectedTask">
-                <div class="taskName">${task.name}</div>
-                <div class="small">Duration: ${task.duration}m | Difficulty: ${task.difficulty}</div>
-                <div style="margin-top:8px; text-align:right;">
-                    <button class="green" style="padding:4px 8px; font-size:12px;" onclick="recoverNeglected('${task.id}')">
-                        Recover Task
-                    </button>
-                </div>
-            </div>
-        `;
-    });
+    // Render Neglected Tasks
+    const neglectedDiv = document.getElementById("neglected");
+    neglectedDiv.innerHTML = "";
 
-    document.getElementById("neglected").innerHTML = neglectedHtml || "<div style='color:#666; font-size:13px; text-align:center; padding-top:40px;'>No neglected tasks.</div>";
+    data.neglected.forEach(task => {
+        const div = document.createElement("div");
+        div.className = "task neglectedTask";
+        div.innerHTML = `
+            <div class="taskName">💀 ${task.name}</div>
+            <div class="small">Neglected on ${formatTimestamp(task.neglectedAt)}</div>
+            <button style="margin-top:8px; font-size:12px;" onclick="recoverNeglected('${task.id}')">Clean Up (+15 pts)</button>
+        `;
+        neglectedDiv.appendChild(div);
+    });
 }
 
 // Modal Helpers
-let primaryActionCallback = null;
-
-function openModal(title, desc, initialValue, primaryLabel, onConfirm, showInput = true) {
+function showNotice(title, desc) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
+    document.getElementById("modalTextarea").style.display = "none";
     
-    let textarea = document.getElementById("modalTextarea");
-    textarea.style.display = showInput ? "block" : "none";
-    textarea.value = initialValue || "";
+    const pBtn = document.getElementById("modalPrimaryBtn");
+    pBtn.innerText = "OK";
+    pBtn.onclick = closeModal;
+    
+    document.getElementById("modalOverlay").style.display = "flex";
+}
 
-    let primaryBtn = document.getElementById("modalPrimaryBtn");
-    primaryBtn.innerText = primaryLabel || "Confirm";
-    
-    primaryActionCallback = onConfirm;
-    primaryBtn.onclick = () => {
-        if(primaryActionCallback) primaryActionCallback(textarea.value);
+function showConfirm(title, desc, onConfirm) {
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalDescription").innerText = desc;
+    document.getElementById("modalTextarea").style.display = "none";
+
+    const pBtn = document.getElementById("modalPrimaryBtn");
+    pBtn.innerText = "Confirm";
+    pBtn.onclick = () => {
+        closeModal();
+        onConfirm();
     };
 
     document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openExportModal() {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    document.getElementById("modalTitle").innerText = "Export Save Data";
+    document.getElementById("modalDescription").innerText = "Copy this encoded save string to transfer your data elsewhere:";
+    
+    const ta = document.getElementById("modalTextarea");
+    ta.style.display = "block";
+    ta.value = encoded;
+
+    const pBtn = document.getElementById("modalPrimaryBtn");
+    pBtn.innerText = "Copy & Close";
+    pBtn.onclick = () => {
+        navigator.clipboard.writeText(encoded);
+        closeModal();
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function openImportModal() {
+    document.getElementById("modalTitle").innerText = "Import Save Data";
+    document.getElementById("modalDescription").innerText = "Paste your encoded save string below:";
+    
+    const ta = document.getElementById("modalTextarea");
+    ta.style.display = "block";
+    ta.value = "";
+
+    const pBtn = document.getElementById("modalPrimaryBtn");
+    pBtn.innerText = "Import";
+    pBtn.onclick = () => {
+        try {
+            const parsed = JSON.parse(decodeURIComponent(ta.value.trim()));
+            if (parsed && typeof parsed === "object") {
+                data = parsed;
+                save();
+                render();
+                closeModal();
+            } else {
+                alert("Invalid save data format.");
+            }
+        } catch(e) {
+            alert("Failed to parse save data string.");
+        }
+    };
+
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function generateShareableLink() {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    const url = window.location.origin + window.location.pathname + "#" + encoded;
+    navigator.clipboard.writeText(url).then(() => {
+        showNotice("Link Copied!", "Shareable sync link copied to your clipboard. Open it on any device to load your progress!");
+    }).catch(() => {
+        showNotice("Sync Link Generated", `Copy this URL:\n\n${url}`);
+    });
 }
 
 function closeModal() {
     document.getElementById("modalOverlay").style.display = "none";
 }
 
-function showNotice(title, desc) {
-    openModal(title, desc, "", "OK", closeModal, false);
-}
-
-function copyHistory() {
-    navigator.clipboard.writeText(data.history.join("\n\n"));
-    showNotice("Copied", "History log copied to clipboard!");
-}
-
-function clearHistory() {
-    data.history = [];
-    save();
-    render();
-}
-
-function openExportModal() {
-    let jsonStr = JSON.stringify(data);
-    openModal("Export Save", "Copy this save string to backup or transfer your progress:", jsonStr, "Copy to Clipboard", () => {
-        navigator.clipboard.writeText(jsonStr);
-        showNotice("Exported!", "Save string copied to clipboard.");
-    });
-}
-
-function openImportModal() {
-    openModal("Import Save", "Paste your save JSON string below:", "", "Import Data", (val) => {
-        try {
-            let parsed = JSON.parse(val);
-            if(parsed && typeof parsed === "object") {
-                data = parsed;
-                save();
-                render();
-                closeModal();
-                showNotice("Success", "Data imported successfully!");
-            } else {
-                alert("Invalid save data format.");
-            }
-        } catch(e) {
-            alert("Error parsing JSON string.");
-        }
-    });
-}
-
-function generateShareableLink() {
-    let jsonStr = JSON.stringify(data);
-    let encoded = encodeURIComponent(jsonStr);
-    let shareUrl = window.location.origin + window.location.pathname + "#" + encoded;
-
-    openModal("Shareable Sync Link", "Copy and open this link on any device to instantly load your progress:", shareUrl, "Copy Link", () => {
-        navigator.clipboard.writeText(shareUrl);
-        showNotice("Link Copied!", "Shareable sync link copied to clipboard.");
-    });
-}
-
-// Initial render & interval timer loops
-updateTaskPreview();
+// Initial Loop
+checkNeglect();
 render();
-
 setInterval(() => {
-    checkNeglectAndOverdue();
+    checkNeglect();
     render();
 }, 1000);
-</script>
 
+</script>
 </body>
 </html>
