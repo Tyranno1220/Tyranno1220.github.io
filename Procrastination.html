@@ -40,19 +40,20 @@ body {
     overflow-y: auto;
 }
 
-/* Custom Scrollbars */
+/* Hide Scrollbars Across All Browsers While Maintaining Scroll Functionality */
+.fixedPanel,
+.history,
+body,
+textarea {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
 .fixedPanel::-webkit-scrollbar,
-.history::-webkit-scrollbar {
-    width: 8px;
-}
-.fixedPanel::-webkit-scrollbar-track,
-.history::-webkit-scrollbar-track {
-    background: #111;
-}
-.fixedPanel::-webkit-scrollbar-thumb,
-.history::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 4px;
+.history::-webkit-scrollbar,
+body::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 /* Score Panel */
