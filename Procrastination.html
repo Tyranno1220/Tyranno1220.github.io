@@ -101,6 +101,12 @@ textarea::-webkit-scrollbar {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+/* Spacing inside rows is handled by the row's gap, so panels add no margin of their own */
+.row .panel {
+    margin-bottom: 0;
 }
 
 .column {
@@ -242,7 +248,7 @@ button:active {
 
     <!-- Score Panel -->
     <div class="panel score">
-        <div style="color: #aaa; font-size: 14px;">YOUR COUNT</div>
+        <div style="color: #aaa; font-size: 14px;">COUNT</div>
         <h1 id="score" onclick="editScore()" style="cursor: pointer; user-select: none;" title="Click to edit score">0</h1>
     </div>
 
@@ -311,19 +317,19 @@ button:active {
 
     <!-- Main Grid Bottom -->
     <div class="row">
-        <!-- Scratchpad Column -->
-        <div class="column">
-            <div class="panel fixedPanel">
-                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Scratchpad</h2>
-                <textarea id="scratchpad" placeholder="Type temporary notes or thoughts here..."></textarea>
-            </div>
-        </div>
-
         <!-- Neglected Tasks Column -->
         <div class="column">
             <div class="panel fixedPanel">
                 <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Neglected Tasks</h2>
                 <div id="neglected"></div>
+            </div>
+        </div>
+
+        <!-- Scratchpad Column -->
+        <div class="column">
+            <div class="panel fixedPanel">
+                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Scratchpad</h2>
+                <textarea id="scratchpad" placeholder="Type temporary notes or thoughts here..."></textarea>
             </div>
         </div>
     </div>
