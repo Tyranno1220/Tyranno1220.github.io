@@ -40,82 +40,36 @@ body {
     overflow-y: auto;
 }
 
-/* Active panel: column layout so the sort button sits at the bottom even with few tasks */
-.fixedPanel.activePanel {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Sticky sort button: stays pinned to the bottom of the visible panel while scrolling */
-.stickySort {
-    position: sticky;
-    bottom: 0;
-    margin-top: auto;
-    text-align: right;
-    pointer-events: none;   /* empty area doesn't block clicks on tasks underneath */
-    padding-top: 6px;
-}
-
-.stickySort button {
-    pointer-events: auto;   /* button itself stays clickable */
-}
-
-/* Hide Scrollbars Across All Browsers While Maintaining Scroll Functionality */
+/* Hide scrollbars while keeping scrolling */
 .fixedPanel,
-.history,
 body,
 textarea {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .fixedPanel::-webkit-scrollbar,
-.history::-webkit-scrollbar,
 body::-webkit-scrollbar,
 textarea::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
 }
 
 /* Score Panel */
 .score {
     text-align: center;
-    padding: 25px;
+    padding: 30px 25px;
     background: black;
 }
 
 .score h1 {
     font-size: 72px;
-    margin: 10px 0;
+    margin: 0;
     font-weight: bold;
     color: #eee;
 }
 
-.highscore {
-    text-align: right;
-    color: #888;
-    font-size: 14px;
-}
-
-/* Layout Grid */
-.row {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-}
-
-/* Spacing inside rows is handled by the row's gap, so panels add no margin of their own */
-.row .panel {
-    margin-bottom: 0;
-}
-
-.column {
-    flex: 1;
-    min-width: 320px;
-}
-
 /* Inputs, Buttons, & Controls */
-input, textarea, button, select {
+input, button {
     background: #111;
     color: #eee;
     border: 1px solid #444;
@@ -126,16 +80,9 @@ input, textarea, button, select {
     transition: all 0.2s ease;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus {
     border-color: #26b84a;
     box-shadow: 0 0 5px rgba(38, 184, 74, 0.3);
-}
-
-textarea {
-    width: 100%;
-    height: 280px;
-    resize: none;
-    line-height: 1.5;
 }
 
 button {
@@ -163,53 +110,71 @@ button:active {
     color: white;
 }
 
-/* Task Card Styling */
-.task {
-    padding: 14px;
-    margin-bottom: 12px;
-    border-left: 6px solid #26b84a;
-    background: #111;
-    border-radius: 2px;
+/* Active tasks (no headings, no cards) */
+.taskCount {
+    text-align: right;
+    color: #888;
+    font-size: 18px;
+    margin-bottom: 6px;
 }
 
-.neglectedTask {
-    border-left: 6px solid #666;
-    opacity: 0.85;
+.taskRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.taskMain {
+    min-width: 0;
 }
 
 .taskName {
     font-size: 18px;
     font-weight: bold;
-    margin-bottom: 4px;
+    overflow-wrap: anywhere;
 }
 
-.small {
-    color: #aaa;
-    font-size: 12px;
+.taskSub {
+    padding-left: 28px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
-.overdue {
+.due {
+    color: #aaa;
+}
+
+.due.overdue {
     color: #ff5555;
-    font-weight: bold;
 }
 
-.history {
-    max-height: 280px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    font-size: 13px;
-    color: #ccc;
-    margin-top: 10px;
+.reward {
+    color: #29d65f;
 }
 
-.footer {
+.warn {
+    color: #ff9900;
+    font-size: 11px;
+}
+
+.taskActions {
     display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
-/* Dialog Modals for Import/Export/Alerts */
+/* Plain white icon buttons */
+.iconBtn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 8px;
+    line-height: 0;
+}
+
+/* Dialog Modals */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -229,11 +194,6 @@ button:active {
     max-width: 500px;
 }
 
-.modal textarea {
-    height: 120px;
-    margin: 10px 0;
-}
-
 .modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -248,27 +208,32 @@ button:active {
 
     <!-- Score Panel -->
     <div class="panel score">
-        <div style="color: #aaa; font-size: 14px;">COUNT</div>
         <h1 id="score" onclick="editScore()" style="cursor: pointer; user-select: none;" title="Click to edit score">0</h1>
     </div>
 
     <!-- Task Input Section -->
-    <div style="display:flex; gap:10px; flex-wrap: wrap; margin-bottom: 15px;">
+    <div style="display:flex; gap:8px; margin-bottom: 15px;">
         <input
             id="taskInput"
-            style="flex:1; min-width: 250px;"
+            style="flex:1; min-width:0;"
             placeholder="finish report 1h 30m hard"
             onkeydown="if(event.key === 'Enter') createTask()"
         />
         <button
             onclick="createTask()"
-            style="min-width:100px; font-size:15px;">
+            style="font-size:15px; padding:10px 12px; white-space:nowrap;">
             + Task
         </button>
         <button
             onclick="createRetroactiveTask()"
-            style="min-width:100px; font-size:15px;">
-            + Done task
+            style="font-size:15px; padding:10px 12px; white-space:nowrap;">
+            + Done
+        </button>
+        <button
+            onclick="quickStart()"
+            style="font-size:15px; padding:10px 12px; white-space:nowrap;"
+            title="Started something? +2 instantly">
+            +2
         </button>
     </div>
 
@@ -278,69 +243,10 @@ button:active {
         style="display:none; color:#888; margin-top:10px; margin-bottom:15px; font-size:13px; background:#111; padding:10px; border-radius:2px; border:1px solid #222;">
     </div>
 
-    <!-- Main Grid Top -->
-    <div class="row">
-        <!-- Active Tasks Column -->
-        <div class="column">
-            <div class="panel fixedPanel activePanel">
-                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">
-                    Active Tasks
-                    <span id="taskCount" style="float:right; color:#888;">0/3</span>
-                </h2>
-                <div id="tasks"></div>
-                <div class="stickySort">
-                    <button id="sortToggleBtn" onclick="toggleSortMode()" style="padding:4px 10px; font-size:12px;">
-                        Deadline
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- History Log Column -->
-        <div class="column">
-            <div class="panel fixedPanel">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:10px;">
-                    <h2 style="margin:0; font-size:18px;">History</h2>
-                    <div style="display:flex; gap:6px;">
-                        <button onclick="copyHistory()" style="padding: 5px 10px; font-size: 12px;">
-                            COPY LOG
-                        </button>
-                        <button id="clearHistoryBtn" onclick="clearHistory()" class="red" disabled style="padding: 5px 10px; font-size: 12px; opacity: 0.4; cursor: not-allowed;">
-                            CLEAR
-                        </button>
-                    </div>
-                </div>
-                <div id="history" class="history"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Grid Bottom -->
-    <div class="row">
-        <!-- Neglected Tasks Column -->
-        <div class="column">
-            <div class="panel fixedPanel">
-                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Neglected Tasks</h2>
-                <div id="neglected"></div>
-            </div>
-        </div>
-
-        <!-- Scratchpad Column -->
-        <div class="column">
-            <div class="panel fixedPanel">
-                <h2 style="margin-top:0; font-size:18px; border-bottom:1px solid #333; padding-bottom:8px;">Scratchpad</h2>
-                <textarea id="scratchpad" placeholder="Type temporary notes or thoughts here..."></textarea>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer Controls -->
-    <div class="footer">
-        <div style="display:flex; gap:10px;">
-            <button onclick="openExportModal()">Export Save</button>
-            <button onclick="openImportModal()">Import Save</button>
-        </div>
-        <button onclick="generateShareableLink()">🔗 Shareable link</button>
+    <!-- Active Tasks -->
+    <div class="panel fixedPanel">
+        <div id="taskCount" class="taskCount">0/3</div>
+        <div id="tasks"></div>
     </div>
 
 </div>
@@ -351,7 +257,6 @@ button:active {
         <h3 id="modalTitle" style="margin-top:0;">Modal Title</h3>
         <p id="modalDescription" style="font-size:13px; color:#aaa; margin-bottom:5px;"></p>
         <input id="modalInput" type="number" style="width:100%; display:none; margin: 10px 0;" />
-        <textarea id="modalTextarea"></textarea>
         <div class="modal-actions">
             <button id="modalCloseBtn" onclick="closeModal()">Close</button>
             <button id="modalSecondaryBtn" class="red" style="display:none;">No</button>
@@ -361,71 +266,36 @@ button:active {
 </div>
 
 <script>
-const STORAGE_KEY = "procrastinationSave";
+const LITE_KEY = "procrastinationLiteSave";
+const OLD_KEY = "procrastinationSave";
 
-function loadFromUrlHash() {
-    if (window.location.hash.length > 1) {
-        try {
-            const encodedData = window.location.hash.substring(1);
-            const jsonStr = decodeURIComponent(encodedData);
-            const parsed = JSON.parse(jsonStr);
-            if (parsed && typeof parsed === "object") {
-                if (window.history && window.history.replaceState) {
-                    window.history.replaceState(null, null, window.location.pathname + window.location.search);
-                } else {
-                    window.location.hash = "";
-                }
-                return parsed;
-            }
-        } catch(e) {
-            console.error("Could not parse URL hash save data", e);
-        }
-    }
-    return null;
-}
-
-let data = loadFromUrlHash() || JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("gremlinSave") || "null");
-
-if(!data) {
-    data = {
-        score: 0,
-        highScore: 0,
-        tasks: [],
-        neglected: [],
-        history: [],
-        scratchpad: "",
-        sortMode: "deadline"
+function normalizeData(d) {
+    return {
+        score: Number.isFinite(d && d.score) ? d.score : 0,
+        tasks: Array.isArray(d && d.tasks) ? d.tasks : []
     };
-} else {
-    if(!data.sortMode) data.sortMode = "deadline";
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+
+// Uses the lite save if there is one, otherwise carries over score + active tasks from the full version
+function loadData() {
+    try {
+        const lite = localStorage.getItem(LITE_KEY);
+        if (lite) return normalizeData(JSON.parse(lite));
+        const old = localStorage.getItem(OLD_KEY);
+        if (old) return normalizeData(JSON.parse(old));
+    } catch (e) {
+        console.error("Could not load save data", e);
+    }
+    return { score: 0, tasks: [] };
+}
+
+let data = loadData();
+let lastTasksHTML = null;
 
 document.getElementById("taskInput").addEventListener("input", updateTaskPreview);
-document.getElementById("scratchpad").value = data.scratchpad || "";
-document.getElementById("scratchpad").addEventListener("input", (e) => {
-    data.scratchpad = e.target.value;
-    save();
-});
-
-function toggleSortMode() {
-    data.sortMode = data.sortMode === "deadline" ? "custom" : "deadline";
-    save();
-    render();
-}
-
-function moveTask(index, direction) {
-    let targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= data.tasks.length) return;
-    let temp = data.tasks[index];
-    data.tasks[index] = data.tasks[targetIndex];
-    data.tasks[targetIndex] = temp;
-    save();
-    render();
-}
 
 function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(LITE_KEY, JSON.stringify(data));
 }
 
 function updateScore(v) {
@@ -433,16 +303,24 @@ function updateScore(v) {
     save();
 }
 
+function escapeHTML(v) {
+    return String(v)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function editScore() {
     resetModal();
     document.getElementById("modalTitle").innerText = "Edit count";
     document.getElementById("modalDescription").innerText = "Please don't misuse this...";
-    
-    document.getElementById("modalTextarea").style.display = "none";
+
     const inputEl = document.getElementById("modalInput");
     inputEl.style.display = "block";
     inputEl.value = data.score;
-    
+
     const pBtn = document.getElementById("modalPrimaryBtn");
     pBtn.innerText = "Save Score";
     pBtn.onclick = () => {
@@ -523,7 +401,7 @@ function calculateFixedReward(type, duration, difficulty) {
 function updateTaskPreview() {
     const text = document.getElementById("taskInput").value;
     const previewEl = document.getElementById("taskPreview");
-    
+
     if(!text.trim()) {
         previewEl.style.display = "none";
         previewEl.innerHTML = "";
@@ -577,7 +455,7 @@ function createTask() {
 function createRetroactiveTask() {
     let input = document.getElementById("taskInput");
     if(!input.value.trim()) {
-        showNotice("Input Required", "Please type a task in the box first before clicking '+ ADD ALREADY DONE'.");
+        showNotice("Input Required", "Please type a task in the box first before clicking '+ Done'.");
         return;
     }
 
@@ -585,13 +463,16 @@ function createRetroactiveTask() {
     let reward = calculateFixedReward(p.type, p.duration, p.difficulty);
 
     updateScore(reward);
-    data.history.unshift(
-        `✅ Completed: ${p.name} (+${reward})\n${formatTimestamp(Date.now())}`
-    );
 
     input.value = "";
     updateTaskPreview();
     save();
+    render();
+}
+
+// Instant +2 for getting started on something
+function quickStart() {
+    updateScore(2);
     render();
 }
 
@@ -607,11 +488,7 @@ function completeTask(id) {
     if(!task) return;
 
     const outcome = getPotentialOutcome(task);
-
     updateScore(outcome.amount);
-    data.history.unshift(
-        `✅ Completed: ${task.name} (+${outcome.amount})\n${formatTimestamp(Date.now())}`
-    );
 
     data.tasks = data.tasks.filter(x => x.id !== id);
     save();
@@ -644,8 +521,7 @@ function askLateStatus(id) {
 }
 
 // Asks about the earliest expired task that hasn't been answered yet.
-// Derived purely from task state, so it is re-asked after a reload or a
-// dismissed/overwritten modal, and multiple expiries are handled one at a time.
+// Derived purely from task state, so it is re-asked after a reload and multiple expiries are handled one at a time.
 function promptNextLateTask() {
     if (document.getElementById("modalOverlay").style.display === "flex") return;
     const now = Date.now();
@@ -666,7 +542,7 @@ function getDiscardPenalty(task) {
     const overdueMinutes = Math.floor((now - task.expiry) / 60000);
     const overdueHours = Math.floor(overdueMinutes / 60);
     const accumulatedDecay = Math.max(0, overdueHours) * 5;
-    
+
     return baseDiscard + accumulatedDecay + 10;
 }
 
@@ -692,52 +568,33 @@ function checkNeglect() {
     let now = Date.now();
     let updated = false;
 
-    // Check active overdue tasks
     for(let i = data.tasks.length - 1; i >= 0; i--) {
         let task = data.tasks[i];
-        
-        if (now > task.expiry) {
 
+        if (now > task.expiry) {
             // Hourly overdue decay deduction (-5/hr) if marked late
             if (task.isLate) {
                 let overdueMinutes = Math.floor((now - task.expiry) / 60000);
                 let currentOverdueHours = Math.floor(overdueMinutes / 60);
-                
+
                 if (currentOverdueHours > (task.hoursPenalized || 0)) {
                     let hoursToCharge = currentOverdueHours - (task.hoursPenalized || 0);
                     let decayPenalty = hoursToCharge * 5;
-                    
+
                     task.hoursPenalized = currentOverdueHours;
                     updateScore(-decayPenalty);
                     updated = true;
                 }
             }
 
-            // Task Neglected after 24 hours overdue
+            // Neglected after 24 hours overdue: the task is dropped with a flat penalty
             if (now - task.expiry > 86400000) {
-                data.neglected.push({
-                    ...task,
-                    neglectedAt: now,
-                    lastNeglectedDecay: now
-                });
                 data.tasks.splice(i, 1);
                 updateScore(-80);
                 updated = true;
             }
         }
     }
-
-    // Decay points for Neglected tasks over time (-5/hr)
-    data.neglected.forEach(task => {
-        const lastDecay = task.lastNeglectedDecay || task.neglectedAt || now;
-        const hoursElapsed = Math.floor((now - lastDecay) / 3600000);
-        if (hoursElapsed >= 1) {
-            const decayPenalty = hoursElapsed * 5;
-            task.lastNeglectedDecay = lastDecay + (hoursElapsed * 3600000);
-            updateScore(-decayPenalty);
-            updated = true;
-        }
-    });
 
     promptNextLateTask();
 
@@ -747,203 +604,85 @@ function checkNeglect() {
     }
 }
 
-function recoverNeglected(id) {
-    if(data.tasks.length >= 3) {
-        showNotice("3 tasks is the limit", "Clear an active task before restoring a neglected task back to active!");
-        return;
-    }
-
-    let taskIndex = data.neglected.findIndex(x => x.id === id);
-    if(taskIndex === -1) return;
-
-    let task = data.neglected[taskIndex];
-    data.neglected.splice(taskIndex, 1);
-
-    // Re-activate task with fresh 30m window
-    let now = Date.now();
-    data.tasks.push({
-        ...task,
-        created: now,
-        expiry: now + (task.duration || 30) * 60000,
-        askedCompletion: false,
-        isLate: false,
-        hoursPenalized: 0
-    });
-
-    save();
-    render();
-}
-
-function clearHistory() {
-    if (!data.history || data.history.length === 0) return;
-
-    showConfirm(
-        "Clear history",
-        "Are you sure you want to clear your entire history log?",
-        () => {
-            data.history = [];
-            save();
-            render();
-        }
-    );
-}
-
-function copyHistory() {
-    if (!data.history || data.history.length === 0) {
-        showNotice("History empty", "There is no history log to copy.");
-        return;
-    }
-    const historyText = data.history.join("\n\n");
-    navigator.clipboard.writeText(historyText).then(() => {
-        showNotice("Copied!", "History log copied to clipboard.");
-    }).catch(err => {
-        console.error("Copy failed", err);
-    });
-}
-
-function escapeHTML(v) {
-    return String(v)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
-function formatTimestamp(ms) {
+function formatDue(ms) {
     const d = new Date(ms);
-    return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === new Date().toDateString()) return `due ${time}`;
+    const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `due ${date}, ${time}`;
 }
 
-function formatTimeRemaining(ms) {
-    if (ms <= 0) return "Overdue";
-    let totalSecs = Math.floor(ms / 1000);
-    let hrs = Math.floor(totalSecs / 3600);
-    let mins = Math.floor((totalSecs % 3600) / 60);
-    let secs = totalSecs % 60;
-
-    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
-    if (mins > 0) return `${mins}m ${secs}s`;
-    return `${secs}s`;
+function formatOverdue(ms) {
+    const totalMins = Math.floor(ms / 60000);
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 }
+
+function formatTimeLeft(ms) {
+    const totalMins = Math.floor(ms / 60000);
+    if (totalMins < 1) return "<1m";
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+}
+
+const CHECK_ICON = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>`;
+const CROSS_ICON = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
 function render() {
     document.getElementById("score").innerText = data.score;
-
-    // Update Sort Button Label
-    const sortBtn = document.getElementById("sortToggleBtn");
-    if (sortBtn) {
-        sortBtn.innerText = `${data.sortMode === "custom" ? "Custom" : "Deadline"}`;
-    }
-
-    // Render Active Tasks
-    let tasksCopy = [...data.tasks];
-
-    if (data.sortMode === "deadline") {
-        tasksCopy.sort((a, b) => a.expiry - b.expiry);
-    }
-
     document.getElementById("taskCount").innerText = `${data.tasks.length}/3`;
-    const tasksDiv = document.getElementById("tasks");
-    tasksDiv.innerHTML = "";
 
     const now = Date.now();
+    const sorted = [...data.tasks].sort((a, b) => a.expiry - b.expiry);
 
-    tasksCopy.forEach((task, index) => {
+    const html = sorted.map(task => {
         const outcome = getPotentialOutcome(task);
-        const discardPenalty = getDiscardPenalty(task);
+        const penalty = getDiscardPenalty(task);
         const isOverdue = now > task.expiry;
-        const diffLabel = task.difficulty === "hard" ? "Hard ★" : task.difficulty === "medium" ? "Medium ◆" : "Easy";
 
-        let timeStr = "";
-        let overdueNotice = "";
+        let dueText = formatDue(task.expiry);
+        dueText += isOverdue
+            ? ` · ${formatOverdue(now - task.expiry)} overdue`
+            : ` (${formatTimeLeft(task.expiry - now)} left)`;
 
-        if (isOverdue) {
-            const overdueMs = now - task.expiry;
-            const overdueMins = Math.floor(overdueMs / 60000);
-            const overdueHrs = Math.floor(overdueMins / 60);
-            const displayOverdueMins = overdueMins % 60;
-            const timeUntilNeglectMs = Math.max(0, 86400000 - overdueMs);
-            const neglectHrs = Math.floor(timeUntilNeglectMs / 3600000);
-            const neglectMins = Math.floor((timeUntilNeglectMs % 3600000) / 60000);
+        const warn = isOverdue ? `<div class="taskSub warn">⚠️ -5 for each hour overdue</div>` : "";
+        const id = escapeHTML(task.id);
 
-            timeStr = `<span class="overdue">${overdueHrs > 0 ? overdueHrs + "h " : ""}${displayOverdueMins}m overdue (neglected in ${neglectHrs}h ${neglectMins}m)</span>`;
-            overdueNotice = `<div style="color:#ff9900; font-size:11px; margin-top:2px;">⚠️ Deducting -5 for each hour overdue! DO IT.</div>`;
-        } else {
-            timeStr = `Time left: ${formatTimeRemaining(task.expiry - now)}`;
-        }
-
-        const outcomeText = `<span style="color:#29d65f;">+${escapeHTML(outcome.amount)}</span>`;
-
-        let reorderButtons = "";
-        if (data.sortMode === "custom") {
-            // Find original index in data.tasks for moving
-            const origIndex = data.tasks.findIndex(t => t.id === task.id);
-            reorderButtons = `
-                <button onclick="moveTask(${origIndex}, -1)" ${origIndex === 0 ? "disabled style='opacity:0.3; cursor:not-allowed; padding:3px 7px; font-size:11px;'" : "style='padding:3px 7px; font-size:11px;'"} title="Move Up">▲</button>
-                <button onclick="moveTask(${origIndex}, 1)" ${origIndex === data.tasks.length - 1 ? "disabled style='opacity:0.3; cursor:not-allowed; padding:3px 7px; font-size:11px;'" : "style='padding:3px 7px; font-size:11px;'"} title="Move Down">▼</button>
-            `;
-        }
-
-        const div = document.createElement("div");
-        div.className = "task";
-        div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div class="taskName">${task.type === "finish" ? "✅" : "🚀"} ${escapeHTML(task.name)}</div>
-                <div style="display:flex; gap:4px;">${reorderButtons}</div>
-            </div>
-            <div class="small">
-                Type: ${escapeHTML(String(task.type).toUpperCase())} | Duration: ${escapeHTML(task.duration)}m | Difficulty: ${diffLabel}<br>
-                ${timeStr}<br>
-                Potential Outcome: ${outcomeText}
-                ${overdueNotice}
-            </div>
-            <div style="margin-top:10px; display:flex; gap:8px;">
-                <button class="green completeBtn">COMPLETE</button>
-                <button class="red discardBtn">DISCARD (-${discardPenalty})</button>
+        return `
+            <div class="taskRow">
+                <div class="taskMain">
+                    <div class="taskName">${task.type === "finish" ? "✅" : "🚀"} ${escapeHTML(task.name)}</div>
+                    <div class="taskSub due${isOverdue ? ' overdue' : ''}">${escapeHTML(dueText)}</div>
+                    <div class="taskSub reward">+${escapeHTML(outcome.amount)}</div>
+                    ${warn}
+                </div>
+                <div class="taskActions">
+                    <button class="iconBtn completeBtn" data-id="${id}" title="Complete" aria-label="Complete">${CHECK_ICON}</button>
+                    <button class="iconBtn discardBtn" data-id="${id}" title="Discard (-${escapeHTML(penalty)})" aria-label="Discard">${CROSS_ICON}</button>
+                </div>
             </div>
         `;
-        div.querySelector(".completeBtn").addEventListener("click", () => completeTask(task.id));
-        div.querySelector(".discardBtn").addEventListener("click", () => discardTask(task.id));
-        tasksDiv.appendChild(div);
-    });
+    }).join("");
 
-    // Render History (Completed Only)
-    const historyDiv = document.getElementById("history");
-    historyDiv.innerText = data.history.join("\n\n");
+    // Only touch the DOM when something visible changed, so clicks are never lost to a re-render
+    if (html === lastTasksHTML) return;
+    lastTasksHTML = html;
 
-    const clearBtn = document.getElementById("clearHistoryBtn");
-    if (data.history && data.history.length > 0) {
-        clearBtn.disabled = false;
-        clearBtn.style.opacity = "1";
-        clearBtn.style.cursor = "pointer";
-    } else {
-        clearBtn.disabled = true;
-        clearBtn.style.opacity = "0.4";
-        clearBtn.style.cursor = "not-allowed";
-    }
-
-    // Render Neglected Tasks
-    const neglectedDiv = document.getElementById("neglected");
-    neglectedDiv.innerHTML = "";
-
-    data.neglected.forEach(task => {
-        const div = document.createElement("div");
-        div.className = "task neglectedTask";
-        div.innerHTML = `
-            <div class="taskName">💀 ${escapeHTML(task.name)}</div>
-            <div class="small">Neglected on ${formatTimestamp(task.neglectedAt)}<br><span style="color:#ff5555;">(Decaying -5 pts/hr)</span></div>
-            <button class="green recoverBtn" style="margin-top:8px; font-size:12px;">REACTIVATE TASK</button>
-        `;
-        div.querySelector(".recoverBtn").addEventListener("click", () => recoverNeglected(task.id));
-        neglectedDiv.appendChild(div);
-    });
+    const tasksDiv = document.getElementById("tasks");
+    tasksDiv.innerHTML = html;
+    tasksDiv.querySelectorAll(".completeBtn").forEach(btn =>
+        btn.addEventListener("click", () => completeTask(btn.dataset.id)));
+    tasksDiv.querySelectorAll(".discardBtn").forEach(btn =>
+        btn.addEventListener("click", () => discardTask(btn.dataset.id)));
 }
 
 // Modal Helpers
 function resetModal() {
     document.getElementById("modalCloseBtn").style.display = "";
     document.getElementById("modalSecondaryBtn").style.display = "none";
+    document.getElementById("modalInput").style.display = "none";
 }
 
 function hideModal() {
@@ -954,13 +693,11 @@ function showNotice(title, desc) {
     resetModal();
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
-    document.getElementById("modalTextarea").style.display = "none";
-    document.getElementById("modalInput").style.display = "none";
-    
+
     const pBtn = document.getElementById("modalPrimaryBtn");
     pBtn.innerText = "OK";
     pBtn.onclick = closeModal;
-    
+
     document.getElementById("modalOverlay").style.display = "flex";
 }
 
@@ -968,8 +705,6 @@ function showConfirm(title, desc, onConfirm) {
     resetModal();
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
-    document.getElementById("modalTextarea").style.display = "none";
-    document.getElementById("modalInput").style.display = "none";
 
     const pBtn = document.getElementById("modalPrimaryBtn");
     pBtn.innerText = "Confirm";
@@ -985,8 +720,6 @@ function showConfirmCustom(title, desc, btn1Text, btn2Text, onBtn1, onBtn2, dism
     resetModal();
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
-    document.getElementById("modalTextarea").style.display = "none";
-    document.getElementById("modalInput").style.display = "none";
 
     const pBtn = document.getElementById("modalPrimaryBtn");
     pBtn.innerText = btn1Text;
@@ -1013,73 +746,12 @@ function showConfirmCustom(title, desc, btn1Text, btn2Text, onBtn1, onBtn2, dism
     document.getElementById("modalOverlay").style.display = "flex";
 }
 
-function openExportModal() {
-    resetModal();
-    const encoded = encodeURIComponent(JSON.stringify(data));
-    document.getElementById("modalTitle").innerText = "Export save data";
-    document.getElementById("modalDescription").innerText = "Copy this to transfer your data elsewhere:";
-    
-    document.getElementById("modalInput").style.display = "none";
-    const ta = document.getElementById("modalTextarea");
-    ta.style.display = "block";
-    ta.value = encoded;
-
-    const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = "Copy & Close";
-    pBtn.onclick = () => {
-        navigator.clipboard.writeText(encoded);
-        closeModal();
-    };
-
-    document.getElementById("modalOverlay").style.display = "flex";
-}
-
-function openImportModal() {
-    resetModal();
-    document.getElementById("modalTitle").innerText = "Import";
-    document.getElementById("modalDescription").innerText = "Paste your encoded save string below:";
-    
-    document.getElementById("modalInput").style.display = "none";
-    const ta = document.getElementById("modalTextarea");
-    ta.style.display = "block";
-    ta.value = "";
-
-    const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = "Import";
-    pBtn.onclick = () => {
-        try {
-            const parsed = JSON.parse(decodeURIComponent(ta.value.trim()));
-            if (parsed && typeof parsed === "object") {
-                data = parsed;
-                save();
-                render();
-                closeModal();
-            } else {
-                alert("Invalid save data format.");
-            }
-        } catch(e) {
-            alert("Failed to parse save data string.");
-        }
-    };
-
-    document.getElementById("modalOverlay").style.display = "flex";
-}
-
-function generateShareableLink() {
-    const encoded = encodeURIComponent(JSON.stringify(data));
-    const url = window.location.origin + window.location.pathname + "#" + encoded;
-    navigator.clipboard.writeText(url).then(() => {
-        showNotice("Link copied!", "Shareable sync link copied to your clipboard. Open it on any device to load your progress!");
-    }).catch(() => {
-        showNotice("Sync Link Generated", `Copy this URL:\n\n${url}`);
-    });
-}
-
 function closeModal() {
-    document.getElementById("modalOverlay").style.display = "none";
+    hideModal();
 }
 
 // Initial Loop
+save();
 checkNeglect();
 render();
 setInterval(() => {
