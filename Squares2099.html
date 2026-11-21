@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQUARES 20-99 ⬜⬜⬜</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      border-radius: 2px !important;
+      font-family: 'Consolas', 'Courier New', Courier, monospace;
+    }
+
+    html, body {
+      background-color: #000000;
+      color: #e5e5e5;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    /* Custom subtle scrollbar for stats grid */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333333;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555555;
+    }
+
+    /* Remove number input spinners */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    @keyframes flashGreen {
+      0% { border-color: #22c55e; background-color: rgba(34, 197, 94, 0.12); }
+      100% { border-color: #262626; background-color: #0a0a0a; }
+    }
+
+    @keyframes flashRed {
+      0% { border-color: #ef4444; background-color: rgba(239, 68, 68, 0.14); }
+      100% { border-color: #262626; background-color: #0a0a0a; }
+    }
+
+    .anim-correct {
+      animation: flashGreen 0.55s ease-out;
+    }
+
+    .anim-wrong {
+      animation: flashRed 0.75s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-200 flex flex-col items-center justify-between p-4 sm:p-6 selection:bg-neutral-700 selection:text-white">
+
+  <!-- Top Header -->
+  <header class="w-full max-w-4xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-neutral-800 bg-neutral-950 px-4 py-3">
+    <div>
+      <h1 class="text-sm sm:text-base font-bold tracking-wider text-white uppercase">SQUARES 20&ndash;99 // ADAPTIVE DRILL</h1>
+      <p class="text-xs text-neutral-500 mt-0.5">Weighted repetition prioritizes slowest &amp; missed squares</p>
+    </div>
+  </header>
+
+  <!-- Main Quiz Area -->
+  <main class="w-full max-w-4xl my-auto py-6 flex flex-col gap-4">
+    
+    <!-- Primary Quiz Card -->
+    <section id="quizCard" class="w-full border border-neutral-800 bg-neutral-950 p-6 sm:p-10 flex flex-col items-center justify-center relative">
+      
+      <!-- Top Metadata Strip inside Quiz Card -->
+      <div class="w-full flex items-center justify-between text-xs text-neutral-500 mb-6 pb-3 border-b border-neutral-900">
+        <div class="flex items-center gap-3">
+          <strong id="itemHistoryIndicator" class="text-neutral-300 font-normal">STANDBY</strong>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="liveTimer" class="text-neutral-300 tabular-nums">0.00s</span>
+        </div>
+      </div>
+
+      <!-- Idle / Start Screen Overlay inside Quiz Card -->
+      <div id="startScreen" class="w-full py-10 sm:py-14 flex flex-col items-center justify-center text-center gap-5">
+        <div class="space-y-1.5">
+          <div class="text-xs uppercase tracking-widest text-neutral-500">SESSION READY</div>
+          <div id="startScreenTitle" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">SQUARES 20&ndash;99</div>
+          <p id="startScreenSub" class="text-xs text-neutral-400 max-w-md">
+            Press START, SPACE, or ENTER to begin timed adaptive recall.
+          </p>
+        </div>
+        <button id="startBtn" type="button" class="px-8 py-3 text-sm font-bold tracking-widest uppercase border border-white bg-white text-black hover:bg-neutral-200 transition-colors cursor-pointer">
+          START SESSION
+        </button>
+      </div>
+
+      <!-- Active Quiz Container -->
+      <div id="activeQuizContainer" class="hidden w-full flex flex-col items-center justify-center">
+        <!-- Prompt Display -->
+        <div class="my-4 sm:my-6 text-center">
+          <div class="text-xs uppercase tracking-widest text-neutral-500 mb-2">CALCULATE SQUARE</div>
+          <div id="questionPrompt" class="text-5xl sm:text-7xl font-bold text-white tracking-tight tabular-nums select-none">
+            --<sup class="text-3xl sm:text-4xl text-neutral-400">2</sup>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <form id="answerForm" class="w-full max-w-xs flex flex-col items-center gap-3 mt-2" autocomplete="off">
+          <input
+            id="answerInput"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            placeholder="____"
+            aria-label="Enter square value"
+            class="w-full text-center text-3xl sm:text-4xl font-bold tracking-widest py-3 px-4 bg-black border border-neutral-700 focus:border-white focus:outline-none text-white placeholder-neutral-800 tabular-nums"
+          />
+          <div class="w-full flex items-center justify-between text-[11px] text-neutral-500 px-0.5">
+            <span>AUTO-SUBMITS AT <span id="expectedDigitsHint" class="text-neutral-400">4</span> DIGITS</span>
+            <button type="submit" class="underline hover:text-neutral-300 cursor-pointer">OR PRESS ENTER</button>
+          </div>
+        </form>
+
+        <!-- Feedback Banner -->
+        <div id="feedbackBox" class="w-full max-w-md mt-6 min-h-[54px] border border-neutral-900 bg-black px-4 py-2.5 flex items-center justify-between text-xs">
+          <span id="feedbackStatus" class="text-neutral-500">Ready. Type answer to begin.</span>
+          <span id="feedbackMetric" class="text-neutral-400 tabular-nums font-bold"></span>
+        </div>
+
+        <!-- Session Controls & Auto-Advance Toggle -->
+        <div class="w-full flex flex-wrap items-center justify-between gap-2 mt-6 pt-3 border-t border-neutral-900 text-xs text-neutral-500">
+          <label class="flex items-center gap-2 cursor-pointer select-none hover:text-neutral-300">
+            <input id="autoAdvanceCheckbox" type="checkbox" checked class="accent-white w-3.5 h-3.5 bg-black border border-neutral-700 cursor-pointer">
+            <span>Retype answer after a miss (off = retry blind)</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <button id="meantBtn" type="button" title="Count this miss as correct (typo) [Y]" class="hidden px-2.5 py-1 border border-emerald-800 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-300 hover:text-white cursor-pointer">
+              I DID MEAN THAT! [Y]
+            </button>
+            <button id="undoBtn" type="button" disabled title="Revert last recorded answer [Z]" class="px-2.5 py-1 border border-neutral-800 bg-neutral-900/60 hover:bg-neutral-800 disabled:opacity-35 disabled:pointer-events-none text-amber-300 hover:text-amber-200 cursor-pointer">
+              UNDO [Z]
+            </button>
+            <button id="skipBtn" type="button" class="px-2.5 py-1 border border-neutral-800 bg-neutral-900/60 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 cursor-pointer">
+              SKIP = MISS [ESC]
+            </button>
+            <button id="stopBtn" type="button" class="px-2.5 py-1 border border-red-900/80 bg-red-950/30 hover:bg-red-900/50 text-red-300 hover:text-white cursor-pointer">
+              STOP
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary Telemetry Bar -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="border border-neutral-800 bg-neutral-950 p-3.5">
+        <div class="text-[11px] text-neutral-500 uppercase">COVERAGE (20-99)</div>
+        <div id="statCoverage" class="text-lg sm:text-xl font-bold text-white mt-1 tabular-nums">0 / 80</div>
+      </div>
+      <div class="border border-neutral-800 bg-neutral-950 p-3.5">
+        <div class="text-[11px] text-neutral-500 uppercase">MEAN RESPONSE</div>
+        <div id="statAvgTime" class="text-lg sm:text-xl font-bold text-white mt-1 tabular-nums">--</div>
+      </div>
+      <div class="border border-neutral-800 bg-neutral-950 p-3.5">
+        <div class="text-[11px] text-neutral-500 uppercase">SESSION ACCURACY</div>
+        <div id="statAccuracy" class="text-lg sm:text-xl font-bold text-white mt-1 tabular-nums">--</div>
+      </div>
+      <div class="border border-neutral-800 bg-neutral-950 p-3.5">
+        <div class="text-[11px] text-neutral-500 uppercase">SLOWEST TARGET</div>
+        <div id="statSlowest" class="text-lg sm:text-xl font-bold text-amber-400 mt-1 tabular-nums">--</div>
+      </div>
+    </section>
+
+    <!-- Always-Visible Detailed Stats & 20-99 Heatmap -->
+    <section id="statsPanel" class="border border-neutral-800 bg-neutral-950 p-4 sm:p-6 flex flex-col gap-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800 pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider">ADAPTIVE WEIGHTS &amp; RESPONSE LATENCY MATRIX (20&ndash;99)</h2>
+          <p class="text-xs text-neutral-500 mt-0.5">Continuous speed gradient scaled across your distribution so extreme outliers stand out.</p>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-neutral-400">
+          <span class="flex items-center gap-1.5"><span class="inline-block w-2.5 h-2.5 bg-neutral-900 border border-neutral-700"></span>UNSEEN</span>
+          <span class="flex items-center gap-1.5">
+            <span>FAST</span>
+            <span class="inline-block w-16 h-2.5 border border-neutral-700" style="background: linear-gradient(90deg, hsl(145, 70%, 24%), hsl(42, 85%, 28%), hsl(0, 82%, 30%));"></span>
+            <span>SLOW</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Top 8 Slowest / Highest Weight Numbers List -->
+      <div>
+        <div class="text-xs text-neutral-400 uppercase mb-2">TOP PRIORITY BOTTLENECKS (HIGHEST SELECTION PROBABILITY)</div>
+        <div id="topSlowestList" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Full 80-item Grid (20 to 99) -->
+      <div>
+        <div class="text-xs text-neutral-400 uppercase mb-2">ALL SQUARES (20&ndash;99) &mdash; CLICK ANY CELL TO DRILL IMMEDIATELY</div>
+        <div id="heatmapGrid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Data Controls & Minimal Footer -->
+  <footer class="w-full max-w-4xl border-t border-neutral-900 pt-4 pb-2 flex flex-col gap-3">
+    <!-- Inline Status / Import Notification Banner -->
+    <div id="dataBanner" class="hidden w-full border border-neutral-700 bg-neutral-950 px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+      <span id="dataBannerText" class="text-neutral-200"></span>
+      <button id="closeDataBannerBtn" type="button" class="px-2 py-0.5 border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white cursor-pointer">
+        DISMISS
+      </button>
+    </div>
+
+    <!-- Inline Confirmation Banner (replaces confirm() dialog) -->
+    <div id="resetConfirmBanner" class="hidden w-full border border-red-800 bg-red-950/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <span class="text-xs text-red-300">Erase all recorded response times, accuracy stats, and adaptive weights?</span>
+      <div class="flex items-center gap-2">
+        <button id="confirmResetYes" type="button" class="px-3 py-1 text-xs font-bold border border-red-600 bg-red-900/60 hover:bg-red-800 text-white cursor-pointer">
+          CONFIRM ERASE
+        </button>
+        <button id="confirmResetNo" type="button" class="px-3 py-1 text-xs border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 cursor-pointer">
+          CANCEL
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="exportDataBtn" type="button" class="px-3 py-1.5 text-xs font-medium border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 hover:border-neutral-500 text-neutral-200 transition-colors cursor-pointer">
+          EXPORT DATA
+        </button>
+        <button id="importDataBtn" type="button" class="px-3 py-1.5 text-xs font-medium border border-neutral-700 bg-neutral-900 hover:bg-neutral-800 hover:border-neutral-500 text-neutral-200 transition-colors cursor-pointer">
+          IMPORT DATA
+        </button>
+        <input id="importDataInput" type="file" accept=".json,application/json" class="hidden" />
+        <button id="resetProgressBtn" type="button" class="px-3 py-1.5 text-xs font-medium border border-red-900/70 bg-neutral-950 hover:bg-red-950/50 hover:border-red-600 text-red-400 transition-colors cursor-pointer">
+          RESET DATA
+        </button>
+      </div>
+      <div class="text-[11px] text-neutral-600">SHORTCUTS: [0-9] TYPE &bull; [ENTER] SUBMIT &bull; [Z] UNDO &bull; [ESC] SKIP</div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Configuration constants
+      const MIN_NUM = 20;
+      const MAX_NUM = 99;
+      const STORAGE_KEY = 'squares_20_99_adaptive_v2';
+      const MAX_TRACKED_MS = 25000; // Cap single-question outliers at 25s
+      const UNSEEN_DEFAULT_WEIGHT = 450000; // Ensures unseen items appear steadily early on
+      const COOLDOWN_WINDOW = 5; // Prevent recently answered items from repeating immediately
+      // Spacing rules: stop a square being derivable from the one you just saw (e.g. 47 -> 48)
+      const SPACING_WINDOW = 4;  // how many recently shown squares are checked
+      const MIN_GAP_PREV = 3;    // never show a number within +/-3 of the one just shown
+      const NEW_SQUARE_CHANCE = 0.25; // chance each question is a never-seen square (while any remain)
+      const MIN_GAP_RECENT = 1;  // ...or within +/-1 of (or equal to) any of the last few shown
+
+      // State variables
+      let records = {};
+      let isSessionActive = false;
+      let currentNumber = null;
+      let questionStartTime = 0;
+      let timerFrameId = null;
+      let pendingAdvanceTimeout = null;
+      let recentQueue = [];
+      let shownHistory = []; // numbers actually displayed (incl. skipped), newest first
+      let undoSnapshot = null;
+      let lastFeedbackNumber = null;
+      let isRetryingPrompt = false;
+      let learnMode = false;     // after a miss/skip: untimed, must type the correct answer
+      let awayFromPage = false;  // tab/window lost focus mid-question
+      let pendingMeant = null;   // typo-shaped miss that can be converted to correct
+      let sessionStats = {
+        total: 0,
+        correct: 0,
+        totalMs: 0
+      };
+
+      // DOM Element references
+      const elQuizCard = document.getElementById('quizCard');
+      const elStartScreen = document.getElementById('startScreen');
+      const elStartScreenTitle = document.getElementById('startScreenTitle');
+      const elStartScreenSub = document.getElementById('startScreenSub');
+      const elStartBtn = document.getElementById('startBtn');
+      const elActiveQuizContainer = document.getElementById('activeQuizContainer');
+      const elQuestionPrompt = document.getElementById('questionPrompt');
+      const elAnswerForm = document.getElementById('answerForm');
+      const elAnswerInput = document.getElementById('answerInput');
+      const elExpectedDigitsHint = document.getElementById('expectedDigitsHint');
+      const elFeedbackBox = document.getElementById('feedbackBox');
+      const elFeedbackStatus = document.getElementById('feedbackStatus');
+      const elFeedbackMetric = document.getElementById('feedbackMetric');
+      const elItemHistoryIndicator = document.getElementById('itemHistoryIndicator');
+      const elLiveTimer = document.getElementById('liveTimer');
+      const elAutoAdvanceCheckbox = document.getElementById('autoAdvanceCheckbox');
+      const elUndoBtn = document.getElementById('undoBtn');
+      const elSkipBtn = document.getElementById('skipBtn');
+      const elStopBtn = document.getElementById('stopBtn');
+      const elMeantBtn = document.getElementById('meantBtn');
+
+      const elStatCoverage = document.getElementById('statCoverage');
+      const elStatAvgTime = document.getElementById('statAvgTime');
+      const elStatAccuracy = document.getElementById('statAccuracy');
+      const elStatSlowest = document.getElementById('statSlowest');
+      const elTopSlowestList = document.getElementById('topSlowestList');
+      const elHeatmapGrid = document.getElementById('heatmapGrid');
+      const elResetProgressBtn = document.getElementById('resetProgressBtn');
+      const elResetConfirmBanner = document.getElementById('resetConfirmBanner');
+      const elConfirmResetYes = document.getElementById('confirmResetYes');
+      const elConfirmResetNo = document.getElementById('confirmResetNo');
+      const elExportDataBtn = document.getElementById('exportDataBtn');
+      const elImportDataBtn = document.getElementById('importDataBtn');
+      const elImportDataInput = document.getElementById('importDataInput');
+      const elDataBanner = document.getElementById('dataBanner');
+      const elDataBannerText = document.getElementById('dataBannerText');
+      const elCloseDataBannerBtn = document.getElementById('closeDataBannerBtn');
+
+      /**
+       * Initialize or load records from localStorage
+       */
+      function loadRecords() {
+        let parsed = {};
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            parsed = JSON.parse(raw);
+          }
+        } catch (err) {
+          console.warn('Could not read localStorage, starting fresh:', err);
+        }
+
+        records = {};
+        for (let n = MIN_NUM; n <= MAX_NUM; n++) {
+          const existing = parsed[n];
+          records[n] = {
+            attempts: existing && typeof existing.attempts === 'number' ? existing.attempts : 0,
+            correct: existing && typeof existing.correct === 'number' ? existing.correct : 0,
+            avgMs: existing && typeof existing.avgMs === 'number' ? existing.avgMs : null,
+            lastMs: existing && typeof existing.lastMs === 'number' ? existing.lastMs : null,
+            penaltyMs: existing && typeof existing.penaltyMs === 'number' ? existing.penaltyMs : 0
+          };
+        }
+      }
+
+      /**
+       * Save current records dictionary to localStorage
+       */
+      function saveRecords() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        } catch (err) {
+          console.warn('Could not save to localStorage:', err);
+        }
+      }
+
+      /**
+       * Display inline notification for data export/import actions
+       */
+      function showDataBanner(message, isError = false) {
+        elDataBannerText.textContent = message;
+        elDataBanner.className = isError
+          ? 'w-full border border-red-800 bg-red-950/30 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-red-300'
+          : 'w-full border border-emerald-800 bg-emerald-950/30 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-emerald-300';
+        elDataBanner.classList.remove('hidden');
+      }
+
+      /**
+       * Export progress records as a timestamped JSON file
+       */
+      function exportDataJson() {
+        try {
+          const payload = {
+            app: 'SQUARES_20_99_ADAPTIVE_DRILL',
+            version: 2,
+            exportedAt: new Date().toISOString(),
+            records: records
+          };
+          const jsonStr = JSON.stringify(payload, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          const stamp = new Date().toISOString().slice(0, 10);
+          link.href = url;
+          link.download = `squares_20_99_data_${stamp}.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          showDataBanner('Exported progress data to JSON.');
+        } catch (err) {
+          showDataBanner('Failed to export data: ' + err.message, true);
+        }
+      }
+
+      /**
+       * Import progress records from a user-selected JSON file
+       */
+      function importDataJson(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          try {
+            const parsed = JSON.parse(event.target.result);
+            const sourceRecords = parsed && typeof parsed.records === 'object' ? parsed.records : parsed;
+            if (!sourceRecords || typeof sourceRecords !== 'object') {
+              throw new Error('Invalid JSON structure.');
+            }
+
+            let importedCount = 0;
+            const updatedRecords = {};
+
+            for (let n = MIN_NUM; n <= MAX_NUM; n++) {
+              const item = sourceRecords[n] || sourceRecords[String(n)];
+              if (item && typeof item === 'object') {
+                const attempts = typeof item.attempts === 'number' && item.attempts >= 0 ? Math.floor(item.attempts) : 0;
+                const correct = typeof item.correct === 'number' && item.correct >= 0 ? Math.floor(item.correct) : 0;
+                const avgMs = typeof item.avgMs === 'number' && item.avgMs > 0 ? item.avgMs : null;
+                const lastMs = typeof item.lastMs === 'number' && item.lastMs > 0 ? item.lastMs : null;
+                const penaltyMs = typeof item.penaltyMs === 'number' && item.penaltyMs >= 0 ? item.penaltyMs : 0;
+
+                updatedRecords[n] = { attempts, correct, avgMs, lastMs, penaltyMs };
+                if (attempts > 0) importedCount++;
+              } else {
+                updatedRecords[n] = { attempts: 0, correct: 0, avgMs: null, lastMs: null, penaltyMs: 0 };
+              }
+            }
+
+            records = updatedRecords;
+            saveRecords();
+            recentQueue = [];
+            undoSnapshot = null;
+            lastFeedbackNumber = null;
+            syncUndoButton();
+            updateTelemetry();
+
+            if (isSessionActive) {
+              nextQuestion();
+            }
+
+            showDataBanner(`Imported data successfully (${importedCount} practiced squares restored).`);
+          } catch (err) {
+            showDataBanner('Import failed: ' + err.message, true);
+          } finally {
+            elImportDataInput.value = '';
+          }
+        };
+        reader.onerror = function () {
+          showDataBanner('Unable to read selected file.', true);
+          elImportDataInput.value = '';
+        };
+        reader.readAsText(file);
+      }
+
+      /**
+       * Compute adaptive selection weight for a given number n.
+       */
+      function computeWeight(n, ignoreRecency = false) {
+        const rec = records[n];
+        let baseWeight;
+
+        if (!rec || rec.attempts === 0 || rec.avgMs === null) {
+          baseWeight = UNSEEN_DEFAULT_WEIGHT;
+        } else {
+          const effectiveTime = Math.max(250, rec.avgMs + rec.penaltyMs);
+          baseWeight = Math.pow(effectiveTime, 1.6) + 12000;
+        }
+
+        const recentIndex = recentQueue.indexOf(n);
+        if (!ignoreRecency && recentIndex !== -1) {
+          const recencyFactor = Math.pow(0.06, recentIndex + 1);
+          baseWeight *= recencyFactor;
+        }
+
+        return Math.max(100, baseWeight);
+      }
+
+      /**
+       * Weighted random selection across 20..99
+       */
+      function pickNextNumber() {
+        const candidates = [];
+        let totalWeight = 0;
+
+        // First pass enforces spacing; second pass is only a safety net.
+        for (const strict of [true, false]) {
+          for (let n = MIN_NUM; n <= MAX_NUM; n++) {
+            if (n === currentNumber) continue;
+            if (strict && isTooClose(n)) continue;
+            const w = computeWeight(n);
+            candidates.push({ num: n, weight: w });
+            totalWeight += w;
+          }
+          if (candidates.length > 0) break;
+        }
+
+        const unseen = candidates.filter((c) => records[c.num].attempts === 0);
+        if (unseen.length > 0 && Math.random() < NEW_SQUARE_CHANCE) {
+          return unseen[Math.floor(Math.random() * unseen.length)].num;
+        }
+
+        let r = Math.random() * totalWeight;
+        for (let i = 0; i < candidates.length; i++) {
+          r -= candidates[i].weight;
+          if (r <= 0) {
+            return candidates[i].num;
+          }
+        }
+        return candidates[candidates.length - 1].num;
+      }
+
+      /**
+       * Typo-shaped = exactly one wrong digit, or two adjacent digits swapped
+       */
+      function isTypoLike(typed, correct) {
+        if (typed.length !== correct.length) return false;
+        const d = [];
+        for (let i = 0; i < correct.length; i++) if (typed[i] !== correct[i]) d.push(i);
+        if (d.length === 1) return true;
+        return d.length === 2 && d[1] === d[0] + 1 && typed[d[0]] === correct[d[1]] && typed[d[1]] === correct[d[0]];
+      }
+
+      function offerMeant(rawVal, elapsedMs) {
+        if (isTypoLike(rawVal, String(currentNumber * currentNumber))) {
+          pendingMeant = { number: currentNumber, elapsedMs: elapsedMs };
+          elMeantBtn.classList.remove('hidden');
+        }
+      }
+
+      function hideMeant() {
+        pendingMeant = null;
+        elMeantBtn.classList.add('hidden');
+      }
+
+      /**
+       * Replace the last miss with a correct answer at the time it took
+       */
+      function confirmMeant() {
+        if (!pendingMeant || !isSessionActive || !undoSnapshot || undoSnapshot.number !== pendingMeant.number) return;
+        const number = pendingMeant.number;
+        const elapsedMs = pendingMeant.elapsedMs;
+        const snap = undoSnapshot;
+        undoSnapshot = null;
+
+        records[number] = { ...snap.prevRecord };
+        sessionStats = { ...snap.prevSessionStats };
+        recentQueue = [...snap.prevRecentQueue];
+        const rec = records[number];
+
+        recentQueue.unshift(number);
+        if (recentQueue.length > COOLDOWN_WINDOW) recentQueue.pop();
+        rec.attempts += 1;
+        rec.correct += 1;
+        rec.lastMs = elapsedMs;
+        if (rec.avgMs === null) {
+          rec.avgMs = elapsedMs;
+        } else {
+          const alpha = elapsedMs < rec.avgMs ? 0.25 : 0.40;
+          rec.avgMs = rec.avgMs * (1 - alpha) + elapsedMs * alpha;
+        }
+        rec.penaltyMs = Math.max(0, rec.penaltyMs * 0.6 - 300);
+        sessionStats.total += 1;
+        sessionStats.correct += 1;
+        sessionStats.totalMs += elapsedMs;
+
+        saveRecords();
+        hideMeant();
+        lastFeedbackNumber = number;
+        elFeedbackStatus.className = 'text-emerald-400 font-bold';
+        elFeedbackStatus.textContent = `COUNTED CORRECT (TYPO) // ${number}\u00B2 = ${number * number}`;
+        elFeedbackMetric.className = 'text-emerald-300 tabular-nums font-bold';
+        elFeedbackMetric.textContent = formatSeconds(elapsedMs);
+        updateTelemetry();
+        syncUndoButton();
+        nextQuestion();
+      }
+
+      /**
+       * Record a miss (wrong answer or skip) against the current square
+       */
+      function registerMiss(elapsedMs) {
+        hideMeant();
+        const rec = records[currentNumber];
+        undoSnapshot = {
+          number: currentNumber,
+          prevRecord: { ...rec },
+          prevSessionStats: { ...sessionStats },
+          prevRecentQueue: [...recentQueue]
+        };
+        recentQueue.unshift(currentNumber);
+        if (recentQueue.length > COOLDOWN_WINDOW) recentQueue.pop();
+
+        rec.attempts += 1;
+        rec.lastMs = elapsedMs;
+        const recordedSlowMs = Math.max(elapsedMs, 3500);
+        rec.avgMs = rec.avgMs === null ? recordedSlowMs : rec.avgMs * 0.55 + recordedSlowMs * 0.45;
+        rec.penaltyMs = Math.min(8000, rec.penaltyMs + 1800);
+
+        sessionStats.total += 1;
+        sessionStats.totalMs += elapsedMs;
+
+        saveRecords();
+        updateTelemetry();
+        syncUndoButton();
+      }
+
+      /**
+       * Untimed phase after a miss: the answer is shown and must be typed before moving on
+       */
+      function enterLearnMode(label) {
+        learnMode = true;
+        isRetryingPrompt = false;
+        lastFeedbackNumber = currentNumber;
+        if (timerFrameId) { cancelAnimationFrame(timerFrameId); timerFrameId = null; }
+        elLiveTimer.textContent = 'UNTIMED';
+        triggerCardFlash('wrong');
+        elFeedbackStatus.className = 'text-red-400 font-bold';
+        elFeedbackStatus.textContent = `${label} // ${currentNumber}\u00B2 = ${currentNumber * currentNumber} \u2014 type it to continue`;
+        elFeedbackMetric.className = 'text-red-300 tabular-nums font-bold';
+        elFeedbackMetric.textContent = '';
+        elAnswerInput.value = '';
+        elAnswerInput.classList.remove('border-amber-500', 'text-amber-300');
+        elAnswerInput.classList.add('border-neutral-700', 'text-white');
+        elAnswerInput.focus();
+        syncUndoButton();
+      }
+
+      /**
+       * Skipping counts as a miss
+       */
+      function skipCurrent() {
+        if (!isSessionActive || currentNumber === null) return;
+        if (learnMode) {
+          elFeedbackStatus.className = 'text-amber-400 font-bold';
+          elFeedbackStatus.textContent = 'Type the answer to continue.';
+          elAnswerInput.focus();
+          return;
+        }
+        const elapsedMs = Math.min(MAX_TRACKED_MS, Math.max(120, performance.now() - questionStartTime));
+        registerMiss(elapsedMs);
+        enterLearnMode('SKIPPED');
+      }
+
+      /**
+       * Void the attempt if the page loses focus mid-question
+       */
+      function leavePage() {
+        if (!isSessionActive || currentNumber === null || learnMode || awayFromPage) return;
+        awayFromPage = true;
+        if (timerFrameId) { cancelAnimationFrame(timerFrameId); timerFrameId = null; }
+      }
+
+      function returnToPage() {
+        if (!awayFromPage) return;
+        awayFromPage = false;
+        if (!isSessionActive || currentNumber === null || learnMode) return;
+        elAnswerInput.value = '';
+        elAnswerInput.focus();
+        elFeedbackStatus.className = 'text-amber-400 font-bold';
+        elFeedbackStatus.textContent = 'Timer reset \u2014 you left the page.';
+        elFeedbackMetric.textContent = '';
+        startQuestionTimer();
+      }
+
+      /**
+       * True if n is too close to recently shown squares (so the answer could be derived from them)
+       */
+      function isTooClose(n) {
+        for (let i = 0; i < shownHistory.length; i++) {
+          const gap = Math.abs(n - shownHistory[i]);
+          const limit = i === 0 ? MIN_GAP_PREV : MIN_GAP_RECENT;
+          if (gap <= limit) return true;
+        }
+        return false;
+      }
+
+      /**
+       * Format milliseconds into clean seconds string
+       */
+      function formatSeconds(ms) {
+        if (ms === null || ms === undefined || isNaN(ms)) return '--';
+        return (ms / 1000).toFixed(2) + 's';
+      }
+
+      /**
+       * Sync UNDO button enabled/disabled visual state
+       */
+      function syncUndoButton() {
+        elUndoBtn.disabled = !undoSnapshot || !isSessionActive;
+      }
+
+      /**
+       * Start or resume the active quiz session
+       */
+      function startSession() {
+        isSessionActive = true;
+        elStartScreen.classList.add('hidden');
+        elActiveQuizContainer.classList.remove('hidden');
+        elFeedbackStatus.className = 'text-neutral-500';
+        elFeedbackStatus.textContent = 'Ready. Type answer to begin.';
+        elFeedbackMetric.textContent = '';
+        lastFeedbackNumber = null;
+        isRetryingPrompt = false;
+        syncUndoButton();
+        nextQuestion();
+      }
+
+      /**
+       * Stop/pause the active quiz session without recording an incomplete attempt
+       */
+      function stopSession() {
+        if (!isSessionActive) return;
+        isSessionActive = false;
+
+        if (timerFrameId) {
+          cancelAnimationFrame(timerFrameId);
+          timerFrameId = null;
+        }
+        if (pendingAdvanceTimeout) {
+          clearTimeout(pendingAdvanceTimeout);
+          pendingAdvanceTimeout = null;
+        }
+
+        currentNumber = null;
+        isRetryingPrompt = false;
+        learnMode = false;
+        hideMeant();
+        elLiveTimer.textContent = '0.00s';
+        elItemHistoryIndicator.textContent = 'PAUSED';
+        elActiveQuizContainer.classList.add('hidden');
+        elStartScreen.classList.remove('hidden');
+
+        elStartScreenTitle.textContent = 'SESSION PAUSED';
+        if (sessionStats.total > 0) {
+          const pct = Math.round((sessionStats.correct / sessionStats.total) * 100);
+          elStartScreenSub.textContent = `Answered ${sessionStats.total} (${pct}% accuracy). Press START, SPACE, or ENTER to resume.`;
+        } else {
+          elStartScreenSub.textContent = 'Press START, SPACE, or ENTER to resume adaptive drill.';
+        }
+        elStartBtn.textContent = 'RESUME SESSION';
+        syncUndoButton();
+      }
+
+      /**
+       * Start live requestAnimationFrame timer for current question
+       */
+      function startQuestionTimer() {
+        if (timerFrameId) cancelAnimationFrame(timerFrameId);
+        questionStartTime = performance.now();
+
+        function tick(now) {
+          if (!isSessionActive) return;
+          const elapsed = now - questionStartTime;
+          elLiveTimer.textContent = (elapsed / 1000).toFixed(2) + 's';
+          timerFrameId = requestAnimationFrame(tick);
+        }
+        timerFrameId = requestAnimationFrame(tick);
+      }
+
+      /**
+       * Present a specific number or pick one adaptively
+       */
+      function nextQuestion(forcedNum = null) {
+        learnMode = false;
+        hideMeant();
+        if (pendingAdvanceTimeout) {
+          clearTimeout(pendingAdvanceTimeout);
+          pendingAdvanceTimeout = null;
+        }
+
+        if (!isSessionActive) {
+          isSessionActive = true;
+          elStartScreen.classList.add('hidden');
+          elActiveQuizContainer.classList.remove('hidden');
+        }
+
+        const nextNum = forcedNum !== null ? forcedNum : pickNextNumber();
+
+        if (lastFeedbackNumber === nextNum) {
+          elFeedbackStatus.className = 'text-neutral-500';
+          elFeedbackStatus.textContent = 'Repeated square — answer hidden.';
+          elFeedbackMetric.textContent = '';
+          isRetryingPrompt = true;
+        } else {
+          isRetryingPrompt = false;
+        }
+
+        currentNumber = nextNum;
+        shownHistory.unshift(nextNum);
+        if (shownHistory.length > SPACING_WINDOW) shownHistory.pop();
+        const expectedAnswerStr = String(currentNumber * currentNumber);
+        const rec = records[currentNumber];
+
+        elQuestionPrompt.innerHTML = `${currentNumber}<sup class="text-3xl sm:text-4xl text-neutral-400">2</sup>`;
+        elExpectedDigitsHint.textContent = expectedAnswerStr.length;
+
+        if (rec.attempts === 0) {
+          elItemHistoryIndicator.textContent = 'UNSEEN';
+        } else {
+          elItemHistoryIndicator.textContent = `AVG ${formatSeconds(rec.avgMs)} (${rec.correct}/${rec.attempts})`;
+        }
+
+        elAnswerInput.value = '';
+        elAnswerInput.classList.remove('border-amber-500', 'text-amber-300');
+        elAnswerInput.classList.add('border-neutral-700', 'text-white');
+        elAnswerInput.focus();
+        syncUndoButton();
+
+        startQuestionTimer();
+      }
+
+      /**
+       * Undo the last recorded answer so typos don't skew latency/weights
+       */
+      function undoLastAnswer() {
+        if (!undoSnapshot || !isSessionActive) return;
+
+        const snap = undoSnapshot;
+        undoSnapshot = null;
+
+        records[snap.number] = { ...snap.prevRecord };
+        sessionStats = { ...snap.prevSessionStats };
+        recentQueue = [...snap.prevRecentQueue];
+        saveRecords();
+
+        elFeedbackStatus.className = 'text-amber-400 font-bold';
+        elFeedbackStatus.textContent = `UNDID ${snap.number}\u00B2 — Re-queued`;
+        elFeedbackMetric.className = 'text-neutral-400 tabular-nums font-bold';
+        elFeedbackMetric.textContent = '';
+
+        lastFeedbackNumber = snap.number;
+
+        updateTelemetry();
+        syncUndoButton();
+        nextQuestion(snap.number);
+      }
+
+      /**
+       * Trigger brief card border flash
+       */
+      function triggerCardFlash(type) {
+        elQuizCard.classList.remove('anim-correct', 'anim-wrong');
+        void elQuizCard.offsetWidth;
+        elQuizCard.classList.add(type === 'correct' ? 'anim-correct' : 'anim-wrong');
+      }
+
+      /**
+       * Evaluate user submission
+       */
+      function handleSubmission() {
+        if (!isSessionActive || currentNumber === null) return;
+
+        const rawVal = elAnswerInput.value.trim();
+        if (!rawVal) return;
+
+        const userVal = parseInt(rawVal, 10);
+        const correctVal = currentNumber * currentNumber;
+        const expectedDigits = String(correctVal).length;
+        const elapsedMs = Math.min(MAX_TRACKED_MS, Math.max(120, performance.now() - questionStartTime));
+
+        if (learnMode) {
+          if (userVal === correctVal) {
+            learnMode = false;
+            elFeedbackStatus.className = 'text-neutral-400';
+            elFeedbackStatus.textContent = `Locked in // ${currentNumber}\u00B2 = ${correctVal}`;
+            nextQuestion();
+          } else {
+            elAnswerInput.value = '';
+            elFeedbackStatus.className = 'text-red-400 font-bold';
+            elFeedbackStatus.textContent = `Not quite \u2014 ${currentNumber}\u00B2 = ${correctVal}. Type it to continue`;
+          }
+          return;
+        }
+
+        const rec = records[currentNumber];
+        const prevRecordCopy = { ...rec };
+        const prevSessionStatsCopy = { ...sessionStats };
+        const prevRecentQueueCopy = [...recentQueue];
+
+        const isCorrect = userVal === correctVal;
+
+        if (isCorrect) {
+          undoSnapshot = {
+            number: currentNumber,
+            prevRecord: prevRecordCopy,
+            prevSessionStats: prevSessionStatsCopy,
+            prevRecentQueue: prevRecentQueueCopy
+          };
+
+          recentQueue.unshift(currentNumber);
+          if (recentQueue.length > COOLDOWN_WINDOW) {
+            recentQueue.pop();
+          }
+
+          rec.attempts += 1;
+          rec.correct += 1;
+          rec.lastMs = elapsedMs;
+
+          if (rec.avgMs === null) {
+            rec.avgMs = elapsedMs;
+          } else {
+            const alpha = elapsedMs < rec.avgMs ? 0.25 : 0.40;
+            rec.avgMs = rec.avgMs * (1 - alpha) + elapsedMs * alpha;
+          }
+          rec.penaltyMs = Math.max(0, rec.penaltyMs * 0.6 - 300);
+
+          sessionStats.total += 1;
+          sessionStats.correct += 1;
+          sessionStats.totalMs += elapsedMs;
+
+          saveRecords();
+          updateTelemetry();
+          syncUndoButton();
+
+          lastFeedbackNumber = currentNumber;
+          isRetryingPrompt = false;
+          triggerCardFlash('correct');
+          elFeedbackStatus.className = 'text-emerald-400 font-bold';
+          elFeedbackStatus.textContent = `CORRECT // ${currentNumber}\u00B2 = ${correctVal}`;
+          elFeedbackMetric.className = 'text-emerald-300 tabular-nums font-bold';
+          elFeedbackMetric.textContent = formatSeconds(elapsedMs);
+
+          nextQuestion();
+        } else {
+          const correctStr = String(correctVal);
+          const isFinalDigitTypo =
+            rawVal.length === expectedDigits &&
+            expectedDigits > 1 &&
+            rawVal.slice(0, -1) === correctStr.slice(0, -1);
+
+          if (isFinalDigitTypo) {
+            elAnswerInput.value = rawVal.slice(0, -1);
+            elAnswerInput.classList.remove('border-neutral-700', 'text-white');
+            elAnswerInput.classList.add('border-amber-500', 'text-amber-300');
+            elFeedbackStatus.className = 'text-amber-400 font-bold';
+            elFeedbackStatus.textContent = `LAST DIGIT OFF (${rawVal}) — Fix final digit`;
+            elFeedbackMetric.className = 'text-amber-300 tabular-nums font-bold';
+            elFeedbackMetric.textContent = '';
+            return;
+          }
+
+          registerMiss(elapsedMs);
+          offerMeant(rawVal, elapsedMs);
+
+          if (elAutoAdvanceCheckbox.checked) {
+            enterLearnMode(`INCORRECT (${userVal})`);
+          } else {
+            lastFeedbackNumber = currentNumber;
+            isRetryingPrompt = true;
+            triggerCardFlash('wrong');
+            elFeedbackStatus.className = 'text-red-400 font-bold';
+            elFeedbackStatus.textContent = `INCORRECT (${userVal}) \u2014 Answer hidden, retry`;
+            elFeedbackMetric.className = 'text-red-300 tabular-nums font-bold';
+            elFeedbackMetric.textContent = formatSeconds(elapsedMs);
+            elAnswerInput.value = '';
+            elAnswerInput.focus();
+            startQuestionTimer();
+          }
+        }
+      }
+
+      /**
+       * Compute continuous HSL gradient styles for a seen cell based on its effective latency
+       * relative to the user's speed distribution (blending rank percentile + log-scaled outlier position).
+       */
+      function getGradientCellStyle(effectiveMs, sortedEffectiveValues) {
+        const count = sortedEffectiveValues.length;
+        if (count <= 1) {
+          return {
+            backgroundColor: 'hsla(145, 65%, 18%, 0.45)',
+            borderColor: 'hsla(145, 65%, 36%, 0.85)',
+            color: 'hsl(145, 75%, 82%)'
+          };
+        }
+
+        let lowerCount = 0;
+        for (let i = 0; i < count; i++) {
+          if (sortedEffectiveValues[i] < effectiveMs) lowerCount++;
+          else break;
+        }
+        const rankT = lowerCount / (count - 1);
+
+        const minVal = Math.max(150, sortedEffectiveValues[0]);
+        const maxVal = Math.max(minVal + 1, sortedEffectiveValues[count - 1]);
+        const logT = (Math.log(Math.max(minVal, effectiveMs)) - Math.log(minVal)) / (Math.log(maxVal) - Math.log(minVal));
+
+        const t = Math.max(0, Math.min(1, rankT * 0.45 + logT * 0.55));
+
+        const hue = Math.round(142 * Math.pow(1 - t, 1.15));
+        const sat = Math.round(62 + t * 24);
+        const bgLight = Math.round(14 + t * 10);
+        const borderLight = Math.round(32 + t * 18);
+
+        return {
+          backgroundColor: `hsla(${hue}, ${sat}%, ${bgLight}%, 0.65)`,
+          borderColor: `hsla(${hue}, ${sat + 6}%, ${borderLight}%, 0.9)`,
+          color: `hsl(${hue}, ${Math.min(95, sat + 15)}%, 84%)`
+        };
+      }
+
+      /**
+       * Update summary cards, top bottlenecks, and 80-cell heatmap
+       */
+      function updateTelemetry() {
+        let seenCount = 0;
+        let sumAvgMs = 0;
+        let slowestNum = null;
+        let highestWeight = -1;
+
+        const ranked = [];
+        const seenEffectiveValues = [];
+
+        for (let n = MIN_NUM; n <= MAX_NUM; n++) {
+          const rec = records[n];
+          const w = computeWeight(n, true);
+
+          if (rec.attempts > 0 && rec.avgMs !== null) {
+            seenCount++;
+            sumAvgMs += rec.avgMs;
+            seenEffectiveValues.push(rec.avgMs + rec.penaltyMs);
+          }
+
+          if (rec.attempts > 0 && rec.avgMs !== null) {
+            const eff = rec.avgMs + rec.penaltyMs;
+            if (eff > highestWeight) {
+              highestWeight = eff;
+              slowestNum = n;
+            }
+          }
+
+          ranked.push({
+            num: n,
+            rec: rec,
+            weight: w
+          });
+        }
+
+        seenEffectiveValues.sort((a, b) => a - b);
+
+        // Coverage
+        elStatCoverage.textContent = `${seenCount} / ${MAX_NUM - MIN_NUM + 1}`;
+
+        // Overall mean speed
+        elStatAvgTime.textContent = seenCount > 0 ? formatSeconds(sumAvgMs / seenCount) : '--';
+
+        // Session accuracy
+        if (sessionStats.total > 0) {
+          const pct = Math.round((sessionStats.correct / sessionStats.total) * 100);
+          elStatAccuracy.textContent = `${pct}% (${sessionStats.correct}/${sessionStats.total})`;
+        } else {
+          elStatAccuracy.textContent = '--';
+        }
+
+        // Slowest / highest priority target
+        if (slowestNum !== null && seenCount > 0) {
+          const sRec = records[slowestNum];
+          elStatSlowest.textContent = sRec.avgMs ? `${slowestNum}\u00B2 (${formatSeconds(sRec.avgMs)})` : `${slowestNum}\u00B2`;
+        } else {
+          elStatSlowest.textContent = '--';
+        }
+
+        // Render Top 8 Priority Bottlenecks
+        ranked.sort((a, b) => b.weight - a.weight);
+        const top8 = ranked.slice(0, 8);
+        elTopSlowestList.innerHTML = '';
+        top8.forEach((item) => {
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.className = 'border border-neutral-800 bg-black hover:border-neutral-500 p-2 text-left transition-colors cursor-pointer';
+          div.title = `Click to practice ${item.num}\u00B2 immediately`;
+          div.innerHTML = `
+            <div class="text-xs font-bold text-white">${item.num}&sup2;</div>
+            <div class="text-[11px] text-neutral-400 tabular-nums mt-0.5">${item.rec.attempts > 0 ? formatSeconds(item.rec.avgMs) : 'NEW'}</div>
+          `;
+          div.addEventListener('click', () => {
+            nextQuestion(item.num);
+          });
+          elTopSlowestList.appendChild(div);
+        });
+
+        // Render Full 20-99 Heatmap Grid
+        elHeatmapGrid.innerHTML = '';
+        for (let n = MIN_NUM; n <= MAX_NUM; n++) {
+          const rec = records[n];
+          const cell = document.createElement('button');
+          cell.type = 'button';
+
+          let subText = '--';
+
+          if (rec.attempts > 0 && rec.avgMs !== null) {
+            subText = (rec.avgMs / 1000).toFixed(1) + 's';
+            const effective = rec.avgMs + rec.penaltyMs;
+            const gradStyle = getGradientCellStyle(effective, seenEffectiveValues);
+            cell.className = 'border px-1.5 py-1.5 text-center transition-all hover:brightness-125 cursor-pointer';
+            cell.style.backgroundColor = gradStyle.backgroundColor;
+            cell.style.borderColor = gradStyle.borderColor;
+            cell.style.color = gradStyle.color;
+          } else {
+            cell.className = 'border px-1.5 py-1.5 text-center transition-colors bg-neutral-900/80 border-neutral-800 text-neutral-400 hover:border-neutral-500 cursor-pointer';
+          }
+
+          cell.title = `${n}\u00B2 = ${n * n} | Attempts: ${rec.attempts} | Avg: ${formatSeconds(rec.avgMs)}`;
+          cell.innerHTML = `
+            <div class="text-xs font-bold leading-tight">${n}</div>
+            <div class="text-[10px] opacity-85 tabular-nums mt-0.5">${subText}</div>
+          `;
+          cell.addEventListener('click', () => {
+            nextQuestion(n);
+          });
+          elHeatmapGrid.appendChild(cell);
+        }
+      }
+
+      // Event Listeners
+      elStartBtn.addEventListener('click', () => {
+        startSession();
+      });
+
+      elStopBtn.addEventListener('click', () => {
+        stopSession();
+      });
+
+      elUndoBtn.addEventListener('click', () => {
+        undoLastAnswer();
+      });
+
+      elAnswerInput.addEventListener('input', () => {
+        if (!isSessionActive || currentNumber === null) return;
+        const sanitized = elAnswerInput.value.replace(/[^0-9]/g, '');
+        if (sanitized !== elAnswerInput.value) {
+          elAnswerInput.value = sanitized;
+        }
+
+        if (elAnswerInput.classList.contains('border-amber-500')) {
+          elAnswerInput.classList.remove('border-amber-500', 'text-amber-300');
+          elAnswerInput.classList.add('border-neutral-700', 'text-white');
+        }
+
+        const expectedDigits = String(currentNumber * currentNumber).length;
+        if (sanitized.length === expectedDigits) {
+          handleSubmission();
+        }
+      });
+
+      elAnswerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleSubmission();
+      });
+
+      elSkipBtn.addEventListener('click', () => {
+        skipCurrent();
+      });
+
+      elResetProgressBtn.addEventListener('click', () => {
+        elResetConfirmBanner.classList.remove('hidden');
+      });
+
+      elConfirmResetNo.addEventListener('click', () => {
+        elResetConfirmBanner.classList.add('hidden');
+      });
+
+      elConfirmResetYes.addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStats = { total: 0, correct: 0, totalMs: 0 };
+        recentQueue = [];
+        undoSnapshot = null;
+        lastFeedbackNumber = null;
+        syncUndoButton();
+        loadRecords();
+        updateTelemetry();
+        elResetConfirmBanner.classList.add('hidden');
+        if (isSessionActive) {
+          nextQuestion();
+        }
+      });
+
+      elExportDataBtn.addEventListener('click', exportDataJson);
+
+      elImportDataBtn.addEventListener('click', () => {
+        elImportDataInput.click();
+      });
+
+      elImportDataInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          importDataJson(file);
+        }
+      });
+
+      elCloseDataBannerBtn.addEventListener('click', () => {
+        elDataBanner.classList.add('hidden');
+      });
+
+      // Global keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (!isSessionActive && (e.key === ' ' || e.key === 'Enter')) {
+          if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement !== elStartBtn) {
+            return;
+          }
+          e.preventDefault();
+          startSession();
+          return;
+        }
+
+        if (e.key === 'Escape' && isSessionActive) {
+          e.preventDefault();
+          skipCurrent();
+        } else if ((e.key === 'y' || e.key === 'Y') && isSessionActive && pendingMeant) {
+          e.preventDefault();
+          confirmMeant();
+        } else if ((e.key === 'z' || e.key === 'Z') && isSessionActive) {
+          e.preventDefault();
+          undoLastAnswer();
+        } else if (isSessionActive && /^[0-9]$/.test(e.key) && document.activeElement !== elAnswerInput) {
+          elAnswerInput.focus();
+        }
+      });
+
+      elMeantBtn.addEventListener('click', confirmMeant);
+      window.addEventListener('blur', leavePage);
+      window.addEventListener('focus', returnToPage);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) leavePage(); else returnToPage();
+      });
+
+      // Boot sequence (starts in idle state awaiting START)
+      loadRecords();
+      updateTelemetry();
+      syncUndoButton();
+    })();
+  </script>
+</body>
+</html>
