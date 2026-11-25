@@ -16,8 +16,8 @@ body {
     background: #0d0d0e;
     color: #eee;
     margin: 0;
-    padding: 20px;
-    line-height: 1.4;
+    padding: 28px 24px 48px;
+    line-height: 1.5;
 }
 
 .container {
@@ -30,25 +30,17 @@ body {
     background: #1d1d1f;
     border-radius: 2px;
     padding: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
     border: 1px solid #2a2a2d;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.fixedPanel {
-    height: 380px;
-    overflow-y: auto;
 }
 
 /* Hide scrollbars while keeping scrolling */
-.fixedPanel,
 body,
 textarea {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
-.fixedPanel::-webkit-scrollbar,
 body::-webkit-scrollbar,
 textarea::-webkit-scrollbar {
     display: none;
@@ -57,8 +49,8 @@ textarea::-webkit-scrollbar {
 /* Score Panel */
 .score {
     text-align: center;
-    padding: 30px 25px;
-    background: black;
+    padding: 56px 25px;
+    background: #0d0d0e;
 }
 
 .score h1 {
@@ -111,19 +103,15 @@ button:active {
 }
 
 /* Active tasks (no headings, no cards) */
-.taskCount {
-    text-align: right;
-    color: #888;
-    font-size: 18px;
-    margin-bottom: 6px;
-}
-
 .taskRow {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 12px 0;
+    gap: 16px;
+    padding: 18px 16px 18px 20px;
+    margin-bottom: 18px;
+    border: 1px solid #2a2a2d;
+    border-radius: 2px;
 }
 
 .taskMain {
@@ -131,6 +119,7 @@ button:active {
 }
 
 .taskName {
+    margin-bottom: 6px;
     font-size: 18px;
     font-weight: bold;
     overflow-wrap: anywhere;
@@ -212,11 +201,11 @@ button:active {
     </div>
 
     <!-- Task Input Section -->
-    <div style="display:flex; gap:8px; margin-bottom: 15px;">
+    <div style="display:flex; gap:10px; margin-bottom: 16px;">
         <input
             id="taskInput"
             style="flex:1; min-width:0;"
-            placeholder="finish report 1h 30m hard"
+            aria-label="Task"
             onkeydown="if(event.key === 'Enter') createTask()"
         />
         <button
@@ -240,14 +229,11 @@ button:active {
     <!-- Task Preview -->
     <div
         id="taskPreview"
-        style="display:none; color:#888; margin-top:10px; margin-bottom:15px; font-size:13px; background:#111; padding:10px; border-radius:2px; border:1px solid #222;">
+        style="display:none; color:#888; margin-top:0; margin-bottom:16px; line-height:1.7; font-size:13px; background:#111; padding:14px; border-radius:2px; border:1px solid #222;">
     </div>
 
     <!-- Active Tasks -->
-    <div class="panel fixedPanel">
-        <div id="taskCount" class="taskCount">0/3</div>
-        <div id="tasks"></div>
-    </div>
+    <div id="tasks" style="margin-top: 36px;"></div>
 
 </div>
 
@@ -357,21 +343,32 @@ function parseTask(text) {
         type = "finish";
     }
 
-    const hMatch = text.match(/(\d+)\s*h/i);
-    const mMatch = text.match(/(\d+)\s*m/i);
+    // Durations must stand alone (so "5pm", "10:30", "3 monkeys" are not durations).
+    // Only the first hours and first minutes match count; every other time stays in the name.
+    const hMatch = /(?<![\d:.])(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i.exec(text);
+    const mMatch = /(?<![\d:.])(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/i.exec(text);
 
-    if (hMatch) duration += parseInt(hMatch[1]) * 60;
-    if (mMatch) duration += parseInt(mMatch[1]);
+    if (hMatch) duration += Math.round(parseFloat(hMatch[1]) * 60);
+    if (mMatch) duration += Math.round(parseFloat(mMatch[1]));
 
     if (duration === 0) duration = 2;
 
-    let name = text
-        .replace(/\d+\s*[mh]/gi, "")
+    // Cut out only the matched duration text, last one first so indexes stay valid
+    let name = text;
+    [hMatch, mMatch]
+        .filter(Boolean)
+        .sort((a, b) => b.index - a.index)
+        .forEach(m => {
+            name = name.slice(0, m.index) + " " + name.slice(m.index + m[0].length);
+        });
+
+    name = name
         .replace(/\b(start|begin|commence|finish|complete|do)\b/gi, "")
         .replace(/\b(easy|medium|hard)\b/gi, "")
+        .replace(/\s{2,}/g, " ")
         .trim();
 
-    if(!name) name = "unnamed task";
+    if(!name) name = "start what you should be doing";
 
     return { name, duration, difficulty, type };
 }
@@ -426,7 +423,6 @@ function createTask() {
     }
 
     let input = document.getElementById("taskInput");
-    if(!input.value.trim()) return;
 
     let p = parseTask(input.value);
     let now = Date.now();
@@ -632,7 +628,6 @@ const CROSS_ICON = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" 
 
 function render() {
     document.getElementById("score").innerText = data.score;
-    document.getElementById("taskCount").innerText = `${data.tasks.length}/3`;
 
     const now = Date.now();
     const sorted = [...data.tasks].sort((a, b) => a.expiry - b.expiry);
