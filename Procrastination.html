@@ -6,14 +6,13 @@
 <title>Procrastination</title>
 
 <style>
-/* Reset & Base Styles */
 * {
     box-sizing: border-box;
     font-family: Inconsolas, monospace;
 }
 
 body {
-    background: #0d0d0e;
+    background: #000;
     color: #eee;
     margin: 0;
     padding: 28px 24px 48px;
@@ -25,16 +24,14 @@ body {
     margin: auto;
 }
 
-/* Panel Containers */
 .panel {
-    background: #1d1d1f;
+    background: #000;
     border-radius: 2px;
     padding: 20px;
     margin-bottom: 32px;
     border: 1px solid #2a2a2d;
 }
 
-/* Hide scrollbars while keeping scrolling */
 body,
 textarea {
     -ms-overflow-style: none;
@@ -46,11 +43,10 @@ textarea::-webkit-scrollbar {
     display: none;
 }
 
-/* Score Panel */
 .score {
     text-align: center;
     padding: 56px 25px;
-    background: #0d0d0e;
+    background: #000;
 }
 
 .score h1 {
@@ -60,21 +56,14 @@ textarea::-webkit-scrollbar {
     color: #eee;
 }
 
-/* Inputs, Buttons, & Controls */
 input, button {
-    background: #111;
+    background: #000;
     color: #eee;
     border: 1px solid #444;
     padding: 10px;
     border-radius: 2px;
     font-size: 14px;
     outline: none;
-    transition: all 0.2s ease;
-}
-
-input:focus {
-    border-color: #26b84a;
-    box-shadow: 0 0 5px rgba(38, 184, 74, 0.3);
 }
 
 button {
@@ -82,32 +71,21 @@ button {
     font-weight: bold;
 }
 
-button:hover {
-    opacity: 0.9;
+
+input:focus {
+    border-color: #26b84a;
+    box-shadow: 0 0 5px rgba(38, 184, 74, 0.3);
 }
 
 button:active {
     transform: translateY(1px);
 }
 
-.green {
-    background: #26b84a;
-    border: none;
-    color: white;
-}
-
-.red {
-    background: #cf2525;
-    border: none;
-    color: white;
-}
-
-/* Active tasks (no headings, no cards) */
 .taskRow {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: 32px;
     padding: 18px 16px 18px 20px;
     margin-bottom: 18px;
     border: 1px solid #2a2a2d;
@@ -154,13 +132,45 @@ button:active {
     flex-shrink: 0;
 }
 
-/* Plain white icon buttons */
-.iconBtn {
-    background: transparent;
+button.iconBtn {
+    background: #000;
     border: none;
     color: #fff;
     padding: 8px;
     line-height: 0;
+}
+
+.taskPreview {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: #000;
+    border: 1px solid #222;
+    border-radius: 2px;
+    color: #888;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.pvMain {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pvReward {
+    flex-shrink: 0;
+    color: #29d65f;
+    font-weight: bold;
+}
+
+.pvDur {
+    flex-shrink: 0;
+    margin-left: auto;
+    color: #aaa;
 }
 
 /* Dialog Modals */
@@ -168,14 +178,14 @@ button:active {
     display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: #000;
     z-index: 1000;
     justify-content: center;
     align-items: center;
 }
 
 .modal {
-    background: #1d1d1f;
+    background: #000;
     border: 1px solid #444;
     border-radius: 2px;
     padding: 20px;
@@ -186,7 +196,16 @@ button:active {
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 8px;
+    margin-top: 32px;
+}
+
+/* Every dialog uses the same borderless tick / cross buttons */
+.modal-actions button {
+    border: none;
+    padding: 8px 18px;
+    line-height: 0;
+    color: #fff;
 }
 </style>
 </head>
@@ -229,7 +248,8 @@ button:active {
     <!-- Task Preview -->
     <div
         id="taskPreview"
-        style="display:none; color:#888; margin-top:0; margin-bottom:16px; line-height:1.7; font-size:13px; background:#111; padding:14px; border-radius:2px; border:1px solid #222;">
+        class="taskPreview"
+        style="display:none;">
     </div>
 
     <!-- Active Tasks -->
@@ -244,9 +264,9 @@ button:active {
         <p id="modalDescription" style="font-size:13px; color:#aaa; margin-bottom:5px;"></p>
         <input id="modalInput" type="number" style="width:100%; display:none; margin: 10px 0;" />
         <div class="modal-actions">
-            <button id="modalCloseBtn" onclick="closeModal()">Close</button>
-            <button id="modalSecondaryBtn" class="red" style="display:none;">No</button>
-            <button id="modalPrimaryBtn" class="green">Confirm</button>
+            <button id="modalCloseBtn" onclick="closeModal()" aria-label="Cancel"></button>
+            <button id="modalSecondaryBtn" style="display:none;" aria-label="No"></button>
+            <button id="modalPrimaryBtn" aria-label="Confirm"></button>
         </div>
     </div>
 </div>
@@ -308,7 +328,6 @@ function editScore() {
     inputEl.value = data.score;
 
     const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = "Save Score";
     pBtn.onclick = () => {
         const val = parseInt(inputEl.value, 10);
         if (!isNaN(val)) {
@@ -328,16 +347,9 @@ function editScore() {
 
 function parseTask(text) {
     let duration = 0;
-    let difficulty = "easy";
     let type = "start";
 
     let lower = text.toLowerCase();
-
-    if(lower.match(/\bhard\b/)) {
-        difficulty = "hard";
-    } else if(lower.match(/\bmedium\b/)) {
-        difficulty = "medium";
-    }
 
     if(lower.match(/\bfinish\b|\bdone\b|\bcomplete\b|\bdo\b/)) {
         type = "finish";
@@ -364,19 +376,12 @@ function parseTask(text) {
 
     name = name
         .replace(/\b(start|begin|commence|finish|complete|do)\b/gi, "")
-        .replace(/\b(easy|medium|hard)\b/gi, "")
         .replace(/\s{2,}/g, " ")
         .trim();
 
     if(!name) name = "start what you should be doing";
 
-    return { name, duration, difficulty, type };
-}
-
-function difficultyMultiplier(d) {
-    if(d === "medium") return 1.2;
-    if(d === "hard") return 1.5;
-    return 1;
+    return { name, duration, type };
 }
 
 function getBaseReward(type, duration) {
@@ -387,12 +392,8 @@ function getBaseReward(type, duration) {
     return 10;
 }
 
-function calculateFixedReward(type, duration, difficulty) {
-    const base = getBaseReward(type, duration);
-    if (type === "start") {
-        return Math.min(2, Math.round(base * difficultyMultiplier(difficulty)));
-    }
-    return Math.max(2, Math.round(base * difficultyMultiplier(difficulty)));
+function calculateFixedReward(type, duration) {
+    return getBaseReward(type, duration);
 }
 
 function updateTaskPreview() {
@@ -407,12 +408,13 @@ function updateTaskPreview() {
 
     const p = parseTask(text);
     const icon = p.type === "finish" ? "✅" : "🚀";
-    const diff = p.difficulty === "hard" ? "Hard ★" : p.difficulty === "medium" ? "Medium ◆" : "Easy";
-    const reward = calculateFixedReward(p.type, p.duration, p.difficulty);
+    const reward = calculateFixedReward(p.type, p.duration);
 
-    previewEl.style.display = "block";
+    previewEl.style.display = "flex";
     previewEl.innerHTML = `
-        ${icon} <strong>${p.type.toUpperCase()}</strong> | Name: <em>${escapeHTML(p.name)}</em> | Duration: <strong>${p.duration}m</strong> | Difficulty: <strong>${diff}</strong> | Reward: <strong style="color:#29d65f;">+${reward}</strong>
+        <span class="pvMain">${icon} <em>${escapeHTML(p.name)}</em></span>
+        <span class="pvReward">+${reward}</span>
+        <span class="pvDur">${p.duration}m</span>
     `;
 }
 
@@ -426,7 +428,7 @@ function createTask() {
 
     let p = parseTask(input.value);
     let now = Date.now();
-    let reward = calculateFixedReward(p.type, p.duration, p.difficulty);
+    let reward = calculateFixedReward(p.type, p.duration);
 
     data.tasks.push({
         id: crypto.randomUUID(),
@@ -434,7 +436,6 @@ function createTask() {
         expiry: now + p.duration * 60000,
         duration: p.duration,
         name: p.name,
-        difficulty: p.difficulty,
         type: p.type,
         reward: reward,
         hoursPenalized: 0,
@@ -456,7 +457,7 @@ function createRetroactiveTask() {
     }
 
     let p = parseTask(input.value);
-    let reward = calculateFixedReward(p.type, p.duration, p.difficulty);
+    let reward = calculateFixedReward(p.type, p.duration);
 
     updateScore(reward);
 
@@ -476,7 +477,7 @@ function getPotentialOutcome(task) {
     if (task.isLate) {
         return { isPenalty: false, amount: 2, isOverdueCompletion: true };
     }
-    return { isPenalty: false, amount: task.reward || calculateFixedReward(task.type, task.duration, task.difficulty) };
+    return { isPenalty: false, amount: task.reward || calculateFixedReward(task.type, task.duration) };
 }
 
 function completeTask(id) {
@@ -498,8 +499,6 @@ function askLateStatus(id) {
     showConfirmCustom(
         "Task Time Expired",
         `Did you finish "${task.name}" on time?`,
-        "✅ Yup",
-        "❌ No",
         () => {
             // User did finish on time
             completeTask(id);
@@ -508,7 +507,7 @@ function askLateStatus(id) {
             // User did not finish on time - apply overdue status & initial penalty
             task.askedCompletion = true;
             task.isLate = true;
-            let latePenalty = Math.round(10 * difficultyMultiplier(task.difficulty));
+            let latePenalty = 10;
             updateScore(-latePenalty);
             save();
             render();
@@ -528,7 +527,7 @@ function promptNextLateTask() {
 }
 
 function getDiscardPenalty(task) {
-    let baseDiscard = Math.max(3, Math.round((task.duration / 5) * difficultyMultiplier(task.difficulty)));
+    let baseDiscard = Math.max(3, Math.round(task.duration / 5));
     const now = Date.now();
 
     if (!task.isLate && now <= task.expiry) {
@@ -689,9 +688,8 @@ function showNotice(title, desc) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
 
-    const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = "OK";
-    pBtn.onclick = closeModal;
+    document.getElementById("modalCloseBtn").style.display = "none";
+    document.getElementById("modalPrimaryBtn").onclick = closeModal;
 
     document.getElementById("modalOverlay").style.display = "flex";
 }
@@ -701,9 +699,7 @@ function showConfirm(title, desc, onConfirm) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
 
-    const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = "Confirm";
-    pBtn.onclick = () => {
+    document.getElementById("modalPrimaryBtn").onclick = () => {
         closeModal();
         onConfirm();
     };
@@ -711,13 +707,12 @@ function showConfirm(title, desc, onConfirm) {
     document.getElementById("modalOverlay").style.display = "flex";
 }
 
-function showConfirmCustom(title, desc, btn1Text, btn2Text, onBtn1, onBtn2, dismissible = false) {
+function showConfirmCustom(title, desc, onBtn1, onBtn2, dismissible = false) {
     resetModal();
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalDescription").innerText = desc;
 
     const pBtn = document.getElementById("modalPrimaryBtn");
-    pBtn.innerText = btn1Text;
     pBtn.onclick = () => {
         hideModal();
         onBtn1();
@@ -725,7 +720,6 @@ function showConfirmCustom(title, desc, btn1Text, btn2Text, onBtn1, onBtn2, dism
     };
 
     const sBtn = document.getElementById("modalSecondaryBtn");
-    sBtn.innerText = btn2Text;
     sBtn.style.display = "";
     sBtn.onclick = () => {
         hideModal();
@@ -746,6 +740,9 @@ function closeModal() {
 }
 
 // Initial Loop
+document.getElementById("modalCloseBtn").innerHTML = CROSS_ICON;
+document.getElementById("modalSecondaryBtn").innerHTML = CROSS_ICON;
+document.getElementById("modalPrimaryBtn").innerHTML = CHECK_ICON;
 save();
 checkNeglect();
 render();
